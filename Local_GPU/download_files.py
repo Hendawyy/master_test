@@ -11,13 +11,51 @@ cred = ClientSecretCredential(
 
 cc = BlobServiceClient(
     "https://adnihendawy.blob.core.windows.net",
-    credential=cred).get_container_client("adni-data")
+    credential=cred,
+    retry_total=8,          # SDK-level retries for transient/connection errors
+    retry_connect=8,
+).get_container_client("adni-data")
+
+MAX_RETRIES = 4
+
+def list_blobs_with_retry(prefix):
+    """list_blobs() is a lazy pager — network calls happen while iterating,
+    so listing can drop mid-page on a flaky connection just like a download."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return list(cc.list_blobs(name_starts_with=prefix))
+        except Exception as e:
+            if attempt == MAX_RETRIES:
+                raise
+            wait = 2 ** attempt
+            print(f"  ⚠ listing '{prefix}' failed: {e} — retry {attempt}/{MAX_RETRIES} in {wait}s")
+            time.sleep(wait)
+
+def download_with_retry(blob_name, dest):
+    """Download a blob to dest. Removes partial files on failure so a later
+    run doesn't mistake a truncated download for a completed one. Returns
+    True on success, False if it failed after all retries."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            with open(dest, "wb") as f:
+                cc.get_blob_client(blob_name).download_blob().readinto(f)
+            return True
+        except Exception as e:
+            if dest.exists():
+                dest.unlink()
+            if attempt == MAX_RETRIES:
+                print(f"  ✗ FAILED after {MAX_RETRIES} attempts: {Path(blob_name).name} ({e})")
+                return False
+            wait = 2 ** attempt
+            print(f"  ⚠ {Path(blob_name).name}: {e} — retry {attempt}/{MAX_RETRIES} in {wait}s")
+            time.sleep(wait)
 
 # ── Download checkpoints ──────────────────────────────────────────
 ckpt_dir = Path(r"C:\Users\seif\neuro_dt\checkpoints")
 ckpt_dir.mkdir(parents=True, exist_ok=True)
 
-blobs = [b for b in cc.list_blobs(name_starts_with="gpu_transfer/checkpoints/")]
+failed = []
+blobs = list_blobs_with_retry("gpu_transfer/checkpoints/")
 for blob in blobs:
     fname = Path(blob.name).name
     dest  = ckpt_dir / fname
@@ -25,15 +63,16 @@ for blob in blobs:
         print(f"  = {fname} (already downloaded)")
         continue
     print(f"Downloading {fname}...")
-    with open(dest, "wb") as f:
-        cc.get_blob_client(blob.name).download_blob().readinto(f)
-    print(f"  ✓ {fname}")
+    if download_with_retry(blob.name, dest):
+        print(f"  ✓ {fname}")
+    else:
+        failed.append(fname)
 
 # ── Download tensor_cache ─────────────────────────────────────────
 cache_dir = Path(r"C:\Users\seif\neuro_dt\tensor_cache")
 cache_dir.mkdir(parents=True, exist_ok=True)
 
-blobs = list(cc.list_blobs(name_starts_with="gpu_transfer/tensor_cache/"))
+blobs = list_blobs_with_retry("gpu_transfer/tensor_cache/")
 print(f"\nDownloading {len(blobs)} tensor cache files (~13 GB)...")
 start = time.time()
 done_this_run = 0
@@ -44,8 +83,9 @@ for i, blob in enumerate(blobs):
     if dest.exists():
         skipped += 1
         continue   # skip already downloaded
-    with open(dest, "wb") as f:
-        cc.get_blob_client(blob.name).download_blob().readinto(f)
+    if not download_with_retry(blob.name, dest):
+        failed.append(fname)
+        continue
     done_this_run += 1
     if done_this_run % 50 == 0:
         elapsed = time.time() - start
@@ -56,7 +96,11 @@ for i, blob in enumerate(blobs):
               f"{skipped} already had | elapsed {elapsed/60:.1f} min | "
               f"~{eta_sec/60:.1f} min remaining")
 
-print(f"\n✓ All files downloaded. ({done_this_run} downloaded this run, {skipped} were already present)")
+print(f"\n✓ Done. ({done_this_run} downloaded this run, {skipped} were already present)")
 print(f"  Total time this run: {(time.time() - start)/60:.1f} min")
 print(f"  Checkpoints: {ckpt_dir}")
 print(f"  Tensor cache: {cache_dir}")
+if failed:
+    print(f"\n⚠ {len(failed)} file(s) failed after {MAX_RETRIES} retries — rerun the script to retry them:")
+    for f in failed:
+        print(f"    {f}")
