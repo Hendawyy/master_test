@@ -89,10 +89,13 @@ cache_dir.mkdir(parents=True, exist_ok=True)
 cleanup_stale_files(cache_dir)
 
 blobs = list_blobs_with_retry("gpu_transfer/tensor_cache/")
-print(f"\nDownloading {len(blobs)} tensor cache files (~13 GB)...")
+already_have = sum(1 for b in blobs if (cache_dir / Path(b.name).name).exists())
+to_fetch = len(blobs) - already_have
+print(f"\nTensor cache: {already_have}/{len(blobs)} already on disk, {to_fetch} to download (~13 GB total)...")
 start = time.time()
 done_this_run = 0
 skipped = 0
+last_print = start
 for i, blob in enumerate(blobs):
     fname = Path(blob.name).name
     dest  = cache_dir / fname
@@ -103,14 +106,15 @@ for i, blob in enumerate(blobs):
         failed.append(fname)
         continue
     done_this_run += 1
-    if done_this_run % 50 == 0:
-        elapsed = time.time() - start
+    now = time.time()
+    if done_this_run % 10 == 0 or now - last_print >= 30:
+        last_print = now
+        elapsed = now - start
         rate = done_this_run / elapsed  # files/sec, this run only
-        remaining = len(blobs) - skipped - done_this_run
+        remaining = to_fetch - done_this_run
         eta_sec = remaining / rate if rate > 0 else 0
-        print(f"  {i+1}/{len(blobs)} processed | {done_this_run} downloaded this run, "
-              f"{skipped} already had | elapsed {elapsed/60:.1f} min | "
-              f"~{eta_sec/60:.1f} min remaining")
+        print(f"  {done_this_run}/{to_fetch} downloaded this run | "
+              f"elapsed {elapsed/60:.1f} min | ~{eta_sec/60:.1f} min remaining")
 
 print(f"\n✓ Done. ({done_this_run} downloaded this run, {skipped} were already present)")
 print(f"  Total time this run: {(time.time() - start)/60:.1f} min")
