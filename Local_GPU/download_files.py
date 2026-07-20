@@ -21,6 +21,9 @@ blobs = [b for b in cc.list_blobs(name_starts_with="gpu_transfer/checkpoints/")]
 for blob in blobs:
     fname = Path(blob.name).name
     dest  = ckpt_dir / fname
+    if dest.exists():
+        print(f"  = {fname} (already downloaded)")
+        continue
     print(f"Downloading {fname}...")
     with open(dest, "wb") as f:
         cc.get_blob_client(blob.name).download_blob().readinto(f)
