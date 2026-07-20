@@ -18,6 +18,25 @@ cc = BlobServiceClient(
 
 MAX_RETRIES = 4
 
+# Optional manifest of filenames already downloaded on ANOTHER machine (e.g.
+# the uni lab PC) — put a plain text file, one filename per line, next to
+# this script, named MANIFEST_NAME. Any listed filename is skipped here too,
+# even though it doesn't exist locally, so this machine only fetches what's
+# genuinely missing everywhere. Merge the two machines' folders later with
+# robocopy (or similar) — this just avoids re-downloading the overlap.
+MANIFEST_NAME = "already_downloaded.txt"
+
+def load_manifest():
+    path = Path(__file__).parent / MANIFEST_NAME
+    if not path.exists():
+        return set()
+    with open(path, "r") as f:
+        names = {line.strip() for line in f if line.strip()}
+    print(f"Loaded manifest '{path.name}': {len(names)} file(s) already downloaded elsewhere, will be skipped.")
+    return names
+
+already_elsewhere = load_manifest()
+
 def list_blobs_with_retry(prefix):
     """list_blobs() is a lazy pager — network calls happen while iterating,
     so listing can drop mid-page on a flaky connection just like a download."""
@@ -74,7 +93,7 @@ blobs = list_blobs_with_retry("gpu_transfer/checkpoints/")
 for blob in blobs:
     fname = Path(blob.name).name
     dest  = ckpt_dir / fname
-    if dest.exists():
+    if dest.exists() or fname in already_elsewhere:
         print(f"  = {fname} (already downloaded)")
         continue
     print(f"Downloading {fname}...")
@@ -89,9 +108,9 @@ cache_dir.mkdir(parents=True, exist_ok=True)
 cleanup_stale_files(cache_dir)
 
 blobs = list_blobs_with_retry("gpu_transfer/tensor_cache/")
-already_have = sum(1 for b in blobs if (cache_dir / Path(b.name).name).exists())
+already_have = sum(1 for b in blobs if (cache_dir / Path(b.name).name).exists() or Path(b.name).name in already_elsewhere)
 to_fetch = len(blobs) - already_have
-print(f"\nTensor cache: {already_have}/{len(blobs)} already on disk, {to_fetch} to download (~13 GB total)...")
+print(f"\nTensor cache: {already_have}/{len(blobs)} already downloaded (here or elsewhere), {to_fetch} to fetch (~13 GB total for all)...")
 start = time.time()
 done_this_run = 0
 skipped = 0
@@ -99,9 +118,9 @@ last_print = start
 for i, blob in enumerate(blobs):
     fname = Path(blob.name).name
     dest  = cache_dir / fname
-    if dest.exists():
+    if dest.exists() or fname in already_elsewhere:
         skipped += 1
-        continue   # skip already downloaded
+        continue   # skip already downloaded (here, or on another machine per the manifest)
     if not download_with_retry(blob.name, dest):
         failed.append(fname)
         continue
