@@ -32,17 +32,23 @@ def list_blobs_with_retry(prefix):
             time.sleep(wait)
 
 def download_with_retry(blob_name, dest):
-    """Download a blob to dest. Removes partial files on failure so a later
-    run doesn't mistake a truncated download for a completed one. Returns
-    True on success, False if it failed after all retries."""
+    """Download a blob to a temp file and only rename it to the final name on
+    full success — so an interrupted write (network drop, Ctrl+C, closed
+    terminal) can never leave a file at `dest` that later runs would
+    mistake for a completed download. Returns True on success, False if it
+    failed after all retries."""
+    tmp = dest.with_name(dest.name + ".part")
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            with open(dest, "wb") as f:
+            with open(tmp, "wb") as f:
                 cc.get_blob_client(blob_name).download_blob().readinto(f)
+            tmp.replace(dest)
             return True
-        except Exception as e:
-            if dest.exists():
-                dest.unlink()
+        except BaseException as e:
+            if tmp.exists():
+                tmp.unlink()
+            if isinstance(e, (KeyboardInterrupt, SystemExit)):
+                raise
             if attempt == MAX_RETRIES:
                 print(f"  ✗ FAILED after {MAX_RETRIES} attempts: {Path(blob_name).name} ({e})")
                 return False
@@ -50,9 +56,18 @@ def download_with_retry(blob_name, dest):
             print(f"  ⚠ {Path(blob_name).name}: {e} — retry {attempt}/{MAX_RETRIES} in {wait}s")
             time.sleep(wait)
 
+def cleanup_stale_files(directory):
+    """Remove leftover .part temp files and zero-byte files (e.g. from a run
+    that got interrupted before this script had the atomic rename fix)."""
+    for p in directory.glob("*"):
+        if p.is_file() and (p.suffix == ".part" or p.stat().st_size == 0):
+            print(f"  🧹 removing stale/incomplete file: {p.name}")
+            p.unlink()
+
 # ── Download checkpoints ──────────────────────────────────────────
 ckpt_dir = Path(r"C:\Users\seif\neuro_dt\checkpoints")
 ckpt_dir.mkdir(parents=True, exist_ok=True)
+cleanup_stale_files(ckpt_dir)
 
 failed = []
 blobs = list_blobs_with_retry("gpu_transfer/checkpoints/")
@@ -71,6 +86,7 @@ for blob in blobs:
 # ── Download tensor_cache ─────────────────────────────────────────
 cache_dir = Path(r"C:\Users\seif\neuro_dt\tensor_cache")
 cache_dir.mkdir(parents=True, exist_ok=True)
+cleanup_stale_files(cache_dir)
 
 blobs = list_blobs_with_retry("gpu_transfer/tensor_cache/")
 print(f"\nDownloading {len(blobs)} tensor cache files (~13 GB)...")
