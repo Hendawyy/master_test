@@ -11,9 +11,25 @@ cred = ClientSecretCredential(
 
 cc = BlobServiceClient(
     "https://adnihendawy.blob.core.windows.net",
-    credential=cred).get_container_client("adni-data")
+    credential=cred,
+    retry_total=8,          # SDK-level retries for transient/connection errors
+    retry_connect=8,
+).get_container_client("adni-data")
 
 MAX_RETRIES = 4
+
+def list_blobs_with_retry(prefix):
+    """list_blobs() is a lazy pager — network calls happen while iterating,
+    so listing can drop mid-page on a flaky connection just like a download."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        try:
+            return list(cc.list_blobs(name_starts_with=prefix))
+        except Exception as e:
+            if attempt == MAX_RETRIES:
+                raise
+            wait = 2 ** attempt
+            print(f"  ⚠ listing '{prefix}' failed: {e} — retry {attempt}/{MAX_RETRIES} in {wait}s")
+            time.sleep(wait)
 
 def download_with_retry(blob_name, dest):
     """Download a blob to dest. Removes partial files on failure so a later
@@ -39,7 +55,7 @@ ckpt_dir = Path(r"C:\Users\seif\neuro_dt\checkpoints")
 ckpt_dir.mkdir(parents=True, exist_ok=True)
 
 failed = []
-blobs = [b for b in cc.list_blobs(name_starts_with="gpu_transfer/checkpoints/")]
+blobs = list_blobs_with_retry("gpu_transfer/checkpoints/")
 for blob in blobs:
     fname = Path(blob.name).name
     dest  = ckpt_dir / fname
@@ -56,7 +72,7 @@ for blob in blobs:
 cache_dir = Path(r"C:\Users\seif\neuro_dt\tensor_cache")
 cache_dir.mkdir(parents=True, exist_ok=True)
 
-blobs = list(cc.list_blobs(name_starts_with="gpu_transfer/tensor_cache/"))
+blobs = list_blobs_with_retry("gpu_transfer/tensor_cache/")
 print(f"\nDownloading {len(blobs)} tensor cache files (~13 GB)...")
 start = time.time()
 done_this_run = 0
