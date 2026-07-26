@@ -57,10 +57,10 @@ through Cell 8 (the 5-fold training loop):
 | 1 | Done, early-stopped ep.13 | 0.8821 | Peak AUC seen was 0.9180 @ ep.13 (worse loss, not selected) |
 | 2 | Done, early-stopped ep.13 | 0.8591 | Epoch 9 had a transient instability spike (vl_loss 1.95), self-corrected by ep.10 |
 | 3 | Done, early-stopped ep.7 | 0.8125 | Weakest fold — plateaued fast, likely genuine fold-to-fold variance |
-| 4 | In progress | — | — |
-| 5 | Not started | — | — |
+| 4 | Done, ran full 20 epochs (no early stop) | 0.9511 | Strongest fold by far — smooth monotonic improvement, no instability spikes |
+| 5 | In progress | — | — |
 
-Running partial mean (3/5 folds): ≈0.851 — **not final**, do not treat as the
+Running partial mean (4/5 folds): ≈0.876 — **not final**, do not treat as the
 thesis number until all 5 folds complete.
 
 Checkpoint selection is by **minimum validation loss**, not maximum AUC — these
@@ -202,7 +202,7 @@ disappoints, do a **second, separate** full run with AUC-based selection later
 ## Next Steps (things to try next)
 
 ### Immediate
-1. Let Cell 8 finish Folds 4 and 5.
+1. Let Cell 8 finish Fold 5 (last remaining fold).
 2. Run **Cell 11 (COMPARE)** for the real GPU 5-fold mean AUC ± std vs. the CPU's
    single-fold 0.9120 — this is the actual fair comparison, not any individual
    fold along the way.
