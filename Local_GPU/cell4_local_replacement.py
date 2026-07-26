@@ -1,8 +1,8 @@
 # ===================================================================
 # Cell 4: Load & Prepare the Golden DataFrame (lab PC — local file version)
 # ===================================================================
-MANIFEST_PATH = Path(r"C:\Users\seif\neuro_dt\master_manifest.csv")
-BAD_SCANS_PATH = Path(r"C:\Users\seif\neuro_dt\bad_scans.txt")
+MANIFEST_PATH = Path(r"C:\Users\seif\neuro_dt\checkpoints\master_manifest.csv")
+BAD_SCANS_PATH = Path(r"C:\Users\seif\neuro_dt\checkpoints\bad_scans.txt")
 
 if not MANIFEST_PATH.exists():
     raise FileNotFoundError(
