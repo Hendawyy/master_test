@@ -53,8 +53,8 @@ df[TABULAR_FEATURES] = df[TABULAR_FEATURES].fillna(df[TABULAR_FEATURES].median()
 
 def extract_visit_date(scan_dir):
     for part in str(scan_dir).split("/"):
-        if len(part) == 10 and part[4] == "-" and part[7] == "-":
-            return pd.to_datetime(part, errors="coerce")
+        if len(part) >= 10 and part[4] == "-" and part[7] == "-":
+            return pd.to_datetime(part[:10], errors="coerce")
     return pd.NaT
 
 df["visit_date"] = df["scan_dir"].apply(extract_visit_date)
