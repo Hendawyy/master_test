@@ -46,11 +46,13 @@ inference.
   machines/runs. Needed before Cell 14 so the CPU's completed ablation results
   (A0, A1, B1–B4) aren't silently redone. Unresolved — see Next Steps.
 
-### Notebook (`Local_GPU/NeuroDT_GPU_Lab.ipynb`) — fixed and actively running training
+### Notebook (`Local_GPU/NeuroDT_GPU_Lab.ipynb`) — fixed, Cell 8 (loss-selected) run COMPLETE
 All 33 cells renumbered sequentially (1→33, no gaps, no letter-suffix labels),
 every Azure-only dependency removed or shimmed for lab-PC mode, and a long list of
-real runtime bugs fixed (full detail in **Changed**, below). Currently mid-way
-through Cell 8 (the 5-fold training loop):
+real runtime bugs fixed (full detail in **Changed**, below). A new optional
+**Cell 8B** (AUC-based checkpoint selection, see below) was also added.
+
+**Cell 8, loss-selected 5-fold run — all 5 folds complete:**
 
 | Fold | Status | Best (loss-selected) val AUC | Notes |
 |---|---|---|---|
@@ -58,16 +60,21 @@ through Cell 8 (the 5-fold training loop):
 | 2 | Done, early-stopped ep.13 | 0.8591 | Epoch 9 had a transient instability spike (vl_loss 1.95), self-corrected by ep.10 |
 | 3 | Done, early-stopped ep.7 | 0.8125 | Weakest fold — plateaued fast, likely genuine fold-to-fold variance |
 | 4 | Done, ran full 20 epochs (no early stop) | 0.9511 | Strongest fold by far — smooth monotonic improvement, no instability spikes |
-| 5 | In progress | — | — |
+| 5 | Done, early-stopped ep.10 | 0.8481 | — |
 
-Running partial mean (4/5 folds): ≈0.876 — **not final**, do not treat as the
-thesis number until all 5 folds complete.
+**Final 5-fold CV mean AUC (loss-selected): 0.8706 ± 0.0461** — this is the
+real, complete GPU number. Still need to run Cell 11 (COMPARE) for the
+formal CPU-vs-GPU writeup.
 
 Checkpoint selection is by **minimum validation loss**, not maximum AUC — these
-disagreed for Fold 1 (see table above). Decision made: keep loss-based selection
-for all 5 folds for methodological consistency within this run; if the final mean
-disappoints, do a **second, separate** full run with AUC-based selection later
-(not a 3-way comparison — see chat history for the reasoning).
+disagreed in 3 of 5 folds (Folds 1, 2, 3; only Fold 4 agreed exactly, being the
+one clean non-early-stopped fold). Peak-AUC-if-selected-differently: Fold 1
+0.9180, Fold 2 0.9035, Fold 3 0.8249 — a consistent, non-trivial gap. Given
+that pattern, decided to run a **second, separate** full training pass with
+AUC-based checkpoint selection for a clean two-run comparison (not a 3-way
+comparison — see chat history for the reasoning). That second pass is
+**Cell 8B** — see **Changed**, below. Not yet run; the lab PC has the code
+in hand and will run it once free.
 
 ### Repo / git state
 - Working on `master` branch directly (the original feature branch's PR #1 was
@@ -89,9 +96,10 @@ disappoints, do a **second, separate** full run with AUC-based selection later
   by actually loading them, not just checking existence
 - `Local_GPU/Handoff.md` — this file
 - `Local_GPU/cell4_local_replacement.py`, `fetch_and_upload_manifest.py`,
-  `cell8_resumable_standalone.py` — working reference snippets created mid-session;
-  their content is now fully embedded in the notebook itself, kept in the repo for
-  reference/reuse but not required for the notebook to run
+  `cell8_resumable_standalone.py`, `cell8b_auc_selection_standalone.py` — working
+  reference snippets created mid-session; their content is now fully embedded in
+  the notebook itself, kept in the repo for reference/reuse but not required for
+  the notebook to run
 - `Local_GPU/already_downloaded.txt` — manifest support file for cross-machine
   download deduplication (currently empty; only useful if you deliberately populate
   it with filenames already present on another machine)
@@ -180,6 +188,14 @@ disappoints, do a **second, separate** full run with AUC-based selection later
   workers weren't worth the risk
 - Fixed a pre-existing `SyntaxError` in Cell 1 (Install Libraries): a second
   `pip install ...` line was missing its `#` comment marker
+- **Added Cell 8B** (new, optional, inserted right after Cell 8): identical
+  model/data/OneCycleLR/AMP/patience-5 setup to Cell 8, but checkpoint
+  selection and early-stopping patience are driven by **maximum validation
+  AUC** instead of minimum validation loss. Writes to separate
+  `best_model_fold{N}_aucsel.pth` files so Cell 8's loss-selected checkpoints
+  are never overwritten; resumable the same way Cell 8 is. Prints a
+  loss-selected-vs-AUC-selected comparison table at the end if Cell 8's
+  `fold_results` is still in the kernel. Not yet run.
 
 ---
 
@@ -202,10 +218,16 @@ disappoints, do a **second, separate** full run with AUC-based selection later
 ## Next Steps (things to try next)
 
 ### Immediate
-1. Let Cell 8 finish Fold 5 (last remaining fold).
-2. Run **Cell 11 (COMPARE)** for the real GPU 5-fold mean AUC ± std vs. the CPU's
-   single-fold 0.9120 — this is the actual fair comparison, not any individual
-   fold along the way.
+1. ~~Let Cell 8 finish Fold 5~~ — **done.** Loss-selected 5-fold CV mean AUC:
+   **0.8706 ± 0.0461** (Folds: 0.8821, 0.8591, 0.8125, 0.9511, 0.8481).
+2. Run **Cell 11 (COMPARE)** for the formal writeup of the GPU 5-fold mean AUC
+   ± std vs. the CPU's single-fold 0.9120 — this is the actual fair comparison,
+   not any individual fold along the way.
+2b. Run the new **Cell 8B** (AUC-based checkpoint selection) — a second,
+   separate 5-fold run to check whether the AUC-based selection closes the gap
+   seen in Folds 1–3 (see **Current State**, above). Writes to distinct
+   `*_aucsel.pth` files, so it's safe to run without disturbing the completed
+   loss-selected results. Prints a side-by-side comparison table at the end.
 3. Track down `ablation_results.json` — confirmed missing from the Azure blob
    transfer on two independent download attempts. Check the Azure Portal/Storage
    Explorer for `adni-data/gpu_transfer/checkpoints/` directly before running
