@@ -1,209 +1,239 @@
-```markdown
-# Neuro-DT Project Handover — May 2026 (GPU Lab Session)
+# Neuro-DT Project Handover — GPU Lab Training Session
 
 ---
 
-## Goal
+# Goal (what we are trying to build)
+
 Complete the Brain Digital Twin (Neuro-DT) master's thesis at the Arab Academy for
 Science, Technology and Maritime Transport.
 
-Student Seif Hendawy
-Supervisors Prof. Fahima Maghraby · Assoc. Prof. Ahmed Salem
+Student: Seif Hendawy
+Supervisors: Prof. Fahima Maghraby · Assoc. Prof. Ahmed Salem
 
-The immediate goal of this session is to
-1. Set up the university GPU lab machine (RTX 5070 Ti, 16 GB VRAM, CUDA 13.1) for training
-2. Transfer the tensor cache (1,549 .pt files, ~13 GB) and checkpoints from Azure to the lab PC
-3. Run the full 5-fold cross-validation training using `NeuroDT_GPU_Lab.ipynb`
-4. Run the complete DL ablation study (variants A2–A6) which could not run on CPU
-
----
-
-## Current State
-
-### GPU Lab Machine — READY
-- Machine University lab PC, Windows, `CUsersseif`
-- GPU NVIDIA RTX 5070 Ti — 17.1 GB VRAM, CUDA 13.1 ✓
-- Environment `bdt-env` conda env, Python 3.10
-- PyTorch `2.11.0+cu128` — CUDA confirmed working (`CUDA True`) ✓
-- Remaining pip installs Still need to run
-  ```cmd
-  pip install azure-ai-ml azureml-core azure-storage-blob azure-identity
-  ```
-  And the full deps if not done yet
-  ```cmd
-  pip install numpy2.0 pandas scikit-learn tqdm matplotlib monai[all] pydicom nibabel mlflow shap hmmlearn azure-storage-blob azure-identity jupyter ipykernel ipywidgets reportlab google-generativeai
-  ```
-
-### File Transfer — IN PROGRESS
-- Upload from Azure compute ✅ COMPLETE
-  - All 1,549 tensor cache `.pt` files uploaded to
-    `adnihendawy  adni-data  gpu_transfertensor_cache`
-  - All checkpoint files uploaded to
-    `adnihendawy  adni-data  gpu_transfercheckpoints`
-  - Includes `best_model_fold4.pth`, all fold checkpoints, `markov_matrices.pkl`,
-    `auc_results.json`, all PNG figures
-- Download to lab PC ⏳ IN PROGRESS (or not started yet)
-  - Script `CUsersseifdownload_files.py`
-  - Destination `CUsersseifneuro_dtcheckpoints` and `CUsersseifneuro_dttensor_cache`
-  - Verify when done
-    ```cmd
-    python -c from pathlib import Path; c=list(Path(r'CUsersseifneuro_dttensor_cache').glob('.pt')); print(f'Tensor cache {len(c)}1549 files'); print('Checkpoint', Path(r'CUsersseifneuro_dtcheckpointsbest_model_fold4.pth').exists())
-    ```
-
-### Notebook — NOT YET RUN ON GPU MACHINE
-- File `NeuroDT_GPU_Lab.ipynb`
-- Two edits MUST be made before running
-
-  Edit 1 — Cell 3 Replace Azure workspace connection block with
-  ```python
-  ml_client = None
-  ws        = None
-  print(⚠ Azure workspace skipped — lab PC mode. Using local files only.)
-  ```
-
-  Edit 2 — Cell 9_GPU Update paths
-  ```python
-  BEST_MODEL_DIR = Path(rCUsersseifneuro_dtcheckpoints)
-  CACHE_DIR      = Path(rCUsersseifneuro_dttensor_cache)
-  LOCAL_MOUNT_PATH = None
-  ```
-
-### Ablation Study — CPU Results Completed (Azure)
-Results saved in `checkpointsablationablation_results.json`
- Variant  AUC  F1  Notes 
--------------------------
- A0 NeuroDT Full  0.9120  0.796  Loaded from existing checkpoint 
- A1 Tabular-Only MLP  0.8766  0.692  No MRI branch 
- B1 Logistic Regression  0.8649  0.707  sklearn tabular 
- B2 SVM RBF  0.8711  0.735  sklearn tabular 
- B3 Random Forest  0.9428  0.830  sklearn tabular — beats NeuroDT on AUC 
- B4 Gradient Boosting  0.9408  0.825  sklearn tabular — beats NeuroDT on AUC 
- A2–A6  ⏳ pending  —  Require GPU — run Cell A2 
-
-⚠ CRITICAL CONTEXT on RFGB beating NeuroDT
-Root cause is MMSE dominance — ADNI labels are partly derived from MMSE scores so
-ensemble methods learn the threshold trivially. Thesis framing
-- NeuroDT has zero CN↔Dementia misclassifications (RFGB will make these)
-- NeuroDT works without MMSE at inference time
-- NeuroDT provides spatial Grad-CAM explainability
-- NeuroDT enables Digital Twin simulation — a scalar RF score cannot
+The Azure CPU compute (`Azure/` in this repo) could only complete 1/5 folds of
+cross-validated training before early-stopping instability, and couldn't run the
+DL ablation variants (A2–A6) at all. This session's goal was to get the university
+GPU lab machine (RTX 5070 Ti) fully set up, transfer all data from Azure, get
+`NeuroDT_GPU_Lab.ipynb` actually running end-to-end, and produce a real 5-fold
+cross-validated AUC mean ± std plus the complete ablation study — the numbers the
+CPU run couldn't produce. If GPU results are better, `dashboard.py` (Streamlit
+digital twin app) will be pointed at the GPU-trained checkpoints for new-patient
+inference.
 
 ---
 
-## Files in Flight
+## Current State (where the work stands right now)
 
- File  Location  Status 
-------------------------
- `NeuroDT_GPU_Lab.ipynb`  Lab PC (needs path edits)  ⏳ Needs Cell 3 + Cell 9_GPU edits before running 
- `NeuroDT_CPU_Workhorse.ipynb`  Azure compute  ✅ Complete, all CPU ablation done 
- `download_files.py`  `CUsersseifdownload_files.py`  ⏳ Run to download tensor_cache + checkpoints 
- `tensor_cache.pt`  Azure blob `gpu_transfertensor_cache`  ✅ Uploaded, ⏳ downloading to lab PC 
- `checkpoints`  Azure blob `gpu_transfercheckpoints`  ✅ Uploaded, ⏳ downloading to lab PC 
- `ablation_results.json`  Azure blob inside checkpoints upload  ✅ Has A0, A1, B1–B4 results 
+### GPU Lab Machine — READY, actively training
+- Machine: University lab PC, Windows, `bdt-env` conda env, Python 3.10
+- GPU: NVIDIA RTX 5070 Ti — 17.1 GB VRAM, PyTorch `2.11.0+cu128`, CUDA confirmed working
+- All dependencies installed and verified in `bdt-env`
 
-### Azure credentials
-```
-TENANT_ID     = '70c07c26-601e-415b-9a91-c351a5ad357b'
-CLIENT_ID     = 'c638dc4d-96ec-4457-8797-23902283156b'  # ← exact, do not change
-CLIENT_SECRET = 'NVp8Q~jeqNiNtwKkbCILt.p4CSNumnl1hz__Hc_E'  # ⚠ ROTATE THIS
-STORAGE       = 'adnihendawy'
-CONTAINER     = 'adni-data'
-```
+### Data — fully downloaded and verified
+- Tensor cache: 1,549/1,549 `.pt` files, all `torch.load()`-verified (see
+  `verify_downloads.py`), at `C:\Users\seif\neuro_dt\tensor_cache`
+- Checkpoints: 9 CPU-baseline `.pth` files + `auc_results.json` + `markov_matrices.pkl`
+  + PNGs, at `C:\Users\seif\neuro_dt\checkpoints` — these are being **overwritten** by
+  the current GPU run's own checkpoints (safe — Cell 11/COMPARE only reads
+  `auc_results.json`, not the `.pth` weight files)
+- `master_manifest.csv` — fetched separately from Azure ML's own `workspaceblobstore`
+  datastore (was never part of the original `gpu_transfer` blob transfer) and routed
+  through the existing `adni-data/gpu_transfer/checkpoints/` path so `download_files.py`
+  picked it up with no code changes
+- `bad_scans.txt` — confirmed genuinely absent from the ingestion job output (not
+  a bug); Cell 4 handles its absence gracefully
+- `ablation_results.json` — **still not found** in any download, on two independent
+  machines/runs. Needed before Cell 14 so the CPU's completed ablation results
+  (A0, A1, B1–B4) aren't silently redone. Unresolved — see Next Steps.
 
-### Windows environment variable syntax (CMD — not PowerShell, not export)
-```cmd
-set AZURE_CLIENT_SECRET=NVp8Q~jeqNiNtwKkbCILt.p4CSNumnl1hz__Hc_E
-```
-Must be set in the same CMD window that starts Jupyter. Lasts only for that session.
+### Notebook (`Local_GPU/NeuroDT_GPU_Lab.ipynb`) — fixed and actively running training
+All 33 cells renumbered sequentially (1→33, no gaps, no letter-suffix labels),
+every Azure-only dependency removed or shimmed for lab-PC mode, and a long list of
+real runtime bugs fixed (full detail in **Changed**, below). Currently mid-way
+through Cell 8 (the 5-fold training loop):
 
----
+| Fold | Status | Best (loss-selected) val AUC | Notes |
+|---|---|---|---|
+| 1 | Done, early-stopped ep.13 | 0.8821 | Peak AUC seen was 0.9180 @ ep.13 (worse loss, not selected) |
+| 2 | Done, early-stopped ep.13 | 0.8591 | Epoch 9 had a transient instability spike (vl_loss 1.95), self-corrected by ep.10 |
+| 3 | Done, early-stopped ep.7 | 0.8125 | Weakest fold — plateaued fast, likely genuine fold-to-fold variance |
+| 4 | In progress | — | — |
+| 5 | Not started | — | — |
 
-## Changed
+Running partial mean (3/5 folds): ≈0.851 — **not final**, do not treat as the
+thesis number until all 5 folds complete.
 
-### This session
-- PyTorch reinstalled Uninstalled CPU-only `torch 2.11.0`, reinstalled
-  `torch 2.11.0+cu128` from `httpsdownload.pytorch.orgwhlcu128` — CUDA now working
-- Azure compute upload All 1,549 tensor cache files + all checkpoint files uploaded
-  to `adnihendawyadni-datagpu_transfer` via Python blob SDK script
-- Cell 3 fix identified `MLClient.from_config()` fails on lab PC (no `config.json`).
-  Must replace with `ml_client = None; ws = None` before running
+Checkpoint selection is by **minimum validation loss**, not maximum AUC — these
+disagreed for Fold 1 (see table above). Decision made: keep loss-based selection
+for all 5 folds for methodological consistency within this run; if the final mean
+disappoints, do a **second, separate** full run with AUC-based selection later
+(not a 3-way comparison — see chat history for the reasoning).
 
-### Previous sessions (already in code)
-- `app.py` v7 — all dashboard bugs fixed, deployed to Azure App Service
-- `NeuroDT_CPU_Workhorse.ipynb` — Cell A2 has graceful guard when
-  `run_ablation_variant` not defined (was throwing NameError)
-- `NeuroDT_GPU_Lab.ipynb` — Cell 10_GPU uses OneCycleLR (fixes early stopping),
-  batch=16, AMP enabled, Cell COMPARE for CPU vs GPU results
-- PDF guide — all table cells use Paragraph objects (fixed text overflow)
-
----
-
-## Failed Attempts
-
- What was tried  Why it failed  Fix 
-------------------------------------
- `pip install torch==2.1.0+cu121`  RTX 5070 Ti is Blackwell architecture, needs CUDA 12.8+. The `+cu121` build doesn't exist on PyPI (only on pytorch.orgwhl). Missing `--extra-index-url` flag.  Uninstall, reinstall with `--extra-index-url httpsdownload.pytorch.orgwhlcu128` 
- `export AZURE_CLIENT_SECRET=...`  LinuxMac syntax — does not work on Windows CMD or PowerShell  Use `set VAR=value` on CMD, `$envVAR=value` on PowerShell 
- `wget httpsaka.msdownloadazcopy-v10-linux` on lab PC PowerShell  Wrong OS (Linux URL on Windows), SSL blocked by university network  Download azcopy Windows zip from browser instead; or use Python blob SDK 
- azcopy download on lab PC  Blocked by university admin — executable wouldn't run  Use `download_files.py` Python script which needs no admin rights 
- `MLClient.from_config()` in Cell 3 on lab PC  No `config.json` exists outside Azure compute environment  Replace with `ml_client = None; ws = None` 
- `torch.cuda.get_device_name(0)` after first pip install  torch was CPU-only build from PyPI — `CUDA False`  Reinstall from pytorch.org whl with cu128 flag 
- Backslash `` line continuation in pip install command on Windows CMD  Windows CMD does not support `` for multi-line commands  Write as one single long line 
+### Repo / git state
+- Working on `master` branch directly (the original feature branch's PR #1 was
+  merged, then further work moved to `master` per explicit instruction)
+- Everything below is committed and pushed
+- ⚠️ **Azure client secret is still sitting in plaintext** in this repo's git
+  history (`Handoff.md`, `download_files.py`) across many commits, on GitHub,
+  unrotated since the start of this session. See Next Steps.
 
 ---
 
-## Next Steps
+## Files in Flight (Active Files Being Modified)
 
-### Immediate (in order)
-1. Verify download complete on lab PC
-   ```cmd
-   python -c from pathlib import Path; c=list(Path(r'CUsersseifneuro_dttensor_cache').glob('.pt')); print(f'{len(c)}1549 files')
-   ```
+- `Local_GPU/NeuroDT_GPU_Lab.ipynb` — the main notebook; extensively modified this
+  session, currently open and running live on the lab PC
+- `Local_GPU/download_files.py` — heavily hardened (retries, atomic writes, resume,
+  manifest support); stable now, not actively changing
+- `Local_GPU/verify_downloads.py` — new this session; validates cache + checkpoints
+  by actually loading them, not just checking existence
+- `Local_GPU/Handoff.md` — this file
+- `Local_GPU/cell4_local_replacement.py`, `fetch_and_upload_manifest.py`,
+  `cell8_resumable_standalone.py` — working reference snippets created mid-session;
+  their content is now fully embedded in the notebook itself, kept in the repo for
+  reference/reuse but not required for the notebook to run
+- `Local_GPU/already_downloaded.txt` — manifest support file for cross-machine
+  download deduplication (currently empty; only useful if you deliberately populate
+  it with filenames already present on another machine)
 
-2. Finish pip installs if not done
-   ```cmd
-   pip install numpy2.0 pandas scikit-learn tqdm matplotlib monai[all] pydicom nibabel mlflow shap hmmlearn azure-storage-blob azure-identity azure-ai-ml azureml-core jupyter ipykernel ipywidgets reportlab google-generativeai
-   python -m ipykernel install --user --name bdt-env --display-name Python (BDT)
-   ```
+---
 
-3. Set secret and start Jupyter (same CMD window)
-   ```cmd
-   set AZURE_CLIENT_SECRET=NVp8Q~jeqNiNtwKkbCILt.p4CSNumnl1hz__Hc_E
-   jupyter notebook
-   ```
+## Changed (what has been touched)
 
-4. Edit notebook before running
-   - Cell 3 replace workspace block with `ml_client = None; ws = None`
-   - Cell 9_GPU set `BEST_MODEL_DIR` and `CACHE_DIR` to `CUsersseifneuro_dt...`
+### `download_files.py`
+- Added elapsed-time/ETA logging; upfront already-have/to-fetch counts; more
+  frequent progress updates (every 10 files or 30s) instead of long silent stretches
+- Added skip-if-already-downloaded to the checkpoints loop (previously only
+  tensor_cache had it)
+- Made downloads atomic: writes to a `.part` temp file, renames only on full
+  success — an interrupted download (Ctrl+C, network drop, closed terminal) can
+  no longer leave a corrupt file that a later run mistakes for complete
+- Added auto-cleanup of stale `.part`/zero-byte files at the start of each run
+- Added retry-with-exponential-backoff for individual blob downloads **and** for
+  blob *listing* calls (`list_blobs()` is a lazy pager — it can drop mid-page on
+  a flaky connection just like a download can)
+- Added support for an optional `already_downloaded.txt` manifest so a second
+  machine (e.g. a home laptop) skips files already fetched elsewhere
 
-5. Session 1 run order
-   ```
-   Cell 3 → 3b → 4 → 7 → 8 → 8b → Cell 9_GPU → Cell 10_GPU
-   ```
-   Cell 10_GPU will take ~6–8 hours on RTX 5070 Ti for full 5-fold training.
+### `verify_downloads.py` (new)
+- Actually `torch.load()`s every cached tensor and checkpoint file (with
+  `weights_only=False`) rather than just checking file existence — catches
+  corruption that finishes writing but is still bad
+- Must be run in `bdt-env` (needs `torch`/`monai`/`sklearn`); running it in the
+  lightweight download-only `.venv` produces false "CORRUPT" reports (wrong
+  environment, not real corruption — happened twice, confirmed both false alarms)
 
-6. Session 2 run order (ablation)
-   ```
-   Cell 3 → 3b → 4 → 7 → 8 → 8b → Cell 9_GPU → Cell 10b → A1 → A2 → A3 → A4
-   ```
-   Cell A2 will run DL variants A2–A6, ~2–3 hours total on RTX 5070 Ti.
+### `NeuroDT_GPU_Lab.ipynb`
+- **Cell 2 (was "Cell 3")**: replaced the real Azure ML workspace connection
+  (`MLClient.from_config()`, `Workspace.from_config()`) with `ml_client=None; ws=None`
+  for lab-PC mode
+- **Cell 4**: replaced the Azure-Datastore-based `master_manifest.csv` fetch with
+  a local-file read; fixed a `visit_date` extraction bug (`extract_visit_date`
+  required an exact 10-character `YYYY-MM-DD` path segment, but real `scan_dir`
+  segments are like `2007-06-05_12_04_39.0_I59318` — date+time+ID concatenated —
+  so it silently returned `NaT` for all 1,549 rows every time). This same bug
+  exists in the original CPU-era notebook too — any CPU-era Markov
+  chain/Digital Twin output may have been built on all-`NaT` dates.
+- **Removed** Cell 5 (raw-DICOM cross-tenant validation) and Cell 6 (3D volume
+  validation) — irrelevant once training reads only from the local tensor_cache
+- **Removed** the old "Cell 9b" (One-Time Preprocessing Cache) — rebuilds the
+  tensor cache from raw DICOM; already done, and its hardcoded Linux AML-compute
+  paths didn't match anything on the lab PC (would have silently rebuilt the cache
+  in the wrong place for hours if run by accident)
+- **Removed** the old "Cell 10c" (Monitor Running Job) — polls an async Azure ML
+  compute job via `ws.get_mlflow_tracking_uri()`, which crashes with `ws=None`;
+  not needed for a synchronous foreground run
+- **Renumbered all 33 remaining cells sequentially 1→33**, fixing every
+  cross-reference throughout (docstrings, print statements, "Prerequisites:
+  Cells..." lists, dash-ranges, the run-order table in the intro cell). Resolved a
+  pre-existing ambiguity where two unrelated recovery cells were both informally
+  labeled "15b" — now distinct Cells 27 and 28.
+- **Cell 8 (training loop) made resumable**: checkpoints now also store
+  optimizer/scheduler/AMP-scaler state and a `fold_complete` flag. Re-running the
+  cell skips fully-completed folds and resumes an interrupted fold from its last
+  saved epoch instead of restarting from scratch. Added a compatibility check
+  (`training_config.scheduler == 'OneCycleLR'`) so it correctly recognizes leftover
+  CPU-baseline checkpoints as *not* resumable and overwrites them fresh, instead
+  of trying to resume from a different run's model/hyperparameters.
+- **Cell 9 (Kernel Recovery)**: fixed a hardcoded AML-compute checkpoint path
+  (`/mnt/batch/tasks/...`) to the lab PC path
+- Fixed a malformed Windows `file://` MLflow tracking URI
+  (`f"file://{path}/mlruns"` isn't valid on Windows — missing slash before the
+  drive letter) — switched to `Path.as_uri()`
+- Fixed a `RecursionError`: Cell 3's `print` monkey-patch captured whatever
+  `print` currently was, so re-running the cell in the same kernel wrapped the
+  filter around itself repeatedly until it blew the recursion limit; added an
+  idempotency guard attribute
+- Fixed `weights_only=True` (PyTorch 2.6+'s new default) rejecting `torch.load()`
+  of every checkpoint (embeds a `StandardScaler`) and every cached tensor
+  (MONAI-wrapped objects) — added `weights_only=False` to every `torch.load()`
+  call in the notebook
+- Fixed a `ValueError` in `roc_auc_score` ("scores need to sum to 1.0") caused by
+  computing `softmax` on float16 logits straight out of AMP `autocast` — cast to
+  float32 before softmax in Cell 8 and Cell 13 (ablation training function, which
+  also uses autocast and would have hit the same bug later)
+- Suppressed a noisy but harmless `mlflow`/gitpython warning
+  (`GIT_PYTHON_REFRESH=quiet`) — no git executable on the lab PC
+- Set `NUM_WORKERS=0` — `num_workers>0` PyTorch DataLoaders inside a Jupyter
+  kernel on Windows use spawn-based multiprocessing, which was hanging
+  indefinitely on worker startup; data is pre-cached `.pt` tensors, so parallel
+  workers weren't worth the risk
+- Fixed a pre-existing `SyntaxError` in Cell 1 (Install Libraries): a second
+  `pip install ...` line was missing its `#` comment marker
 
-7. Copy ablation_results.json from Azure to lab PC before running Cell A2,
-   so completed results (A0, A1, B1–B4) are not lost and Cell A2 skips them
-   - It will be inside `CUsersseifneuro_dtcheckpointsablationablation_results.json`
-   - if the download_files.py script downloaded the ablation subfolder
+---
 
-### After GPU training completes
-- Run Cell COMPARE to document CPU vs GPU AUC difference
-- Re-run Cell A4 with full results for the final ablation table and figures
-- Update thesis results section with GPU cross-validated AUC mean ± std
-- Thesis framing for RFGB finding MMSE dominance, not NeuroDT failure
+## Failed attempts (things you tried but didn't work and why)
 
-### GPU training config (Cell 10_GPU key settings)
-```python
-FAST_PROTO = False   # ← MUST be False for thesis results
-BATCH_SIZE = 16      # fits in 17.1 GB VRAM
-USE_AMP    = True    # mixed precision — enabled automatically on GPU
-# Scheduler OneCycleLR with 10% warmup (fixes the CPU early stopping issue)
-```
-```
+| What was tried | Why it failed | Fix |
+|---|---|---|
+| Running `verify_downloads.py` in the lightweight `.venv` | Only has `azure-storage-blob`/`azure-identity`; missing `monai`/`sklearn`/`numpy` needed to unpickle the cached objects | Run it in `bdt-env` instead |
+| Running Cell 8 as originally written | `torch.load()` defaults to `weights_only=True` on PyTorch 2.6+, rejects the embedded `StandardScaler`/MONAI objects | Added `weights_only=False` everywhere |
+| Running Cell 8 after that fix | Malformed `file://{path}/mlruns` URI on Windows crashed `mlflow.set_experiment()` | Switched to `Path.as_uri()` |
+| Re-running Cell 3 after a kernel restart | Print monkey-patch wrapped itself repeatedly across runs → `RecursionError` | Added idempotency guard |
+| Running Cell 8 with `NUM_WORKERS=4` | DataLoader worker-spawn hangs indefinitely — known Windows+Jupyter+multiprocessing issue | Set `NUM_WORKERS=0` |
+| Running Cell 8 after the hang fix | `torch.softmax()` on float16 AMP logits lost enough precision that row-sums failed sklearn's strict `roc_auc_score` check | Cast logits to float32 before softmax |
+| First resume-check design in Cell 8 | Didn't distinguish a genuine in-progress GPU checkpoint from a leftover CPU-baseline checkpoint with the same filename — would have "resumed" fold 1 from the wrong model entirely | Added `training_config.scheduler == 'OneCycleLR'` compatibility check |
+| Suspected a 4,207-item folder found on the laptop might be (or substitute for) the tensor cache | It's ADNI raw metadata (XML sidecars + empty subject dirs) — 9.8 MB total, no actual imaging data | Confirmed harmless if left in place (no filename/extension collision with the real cache); not a substitute for the real download |
+| Several `download_files.py` runs on university wifi | `ConnectionResetError` / blob listing failures from an unreliable network | Retry-with-backoff on both downloads and listing; not a dead end, just needed resilience |
+
+---
+
+## Next Steps (things to try next)
+
+### Immediate
+1. Let Cell 8 finish Folds 4 and 5.
+2. Run **Cell 11 (COMPARE)** for the real GPU 5-fold mean AUC ± std vs. the CPU's
+   single-fold 0.9120 — this is the actual fair comparison, not any individual
+   fold along the way.
+3. Track down `ablation_results.json` — confirmed missing from the Azure blob
+   transfer on two independent download attempts. Check the Azure Portal/Storage
+   Explorer for `adni-data/gpu_transfer/checkpoints/` directly before running
+   Cell 14, so the completed CPU ablation results (A0, A1, B1–B4) aren't redone.
+
+### Post-training pipeline (run in order)
+4. Cell 9 (recovery, only if the kernel died) → **18** (evaluation) → **20**
+   (Grad-CAM) → **22** (Markov chain — now safe, given the `visit_date` fix) →
+   **24** (Digital Twin assembly) → **26–32** (simulations) → **33** (single
+   patient inference — the cell relevant to `dashboard.py`)
+5. Ablation study: **13** → **14** (DL variants A2–A6, ~3–4 hrs) → **15**
+   (classical ML baselines) → **16** (compile results table) — this is the work
+   the CPU run couldn't do at all.
+
+### Worth deciding on
+6. Whether to run a **second**, separate AUC-based-checkpoint-selection training
+   run for comparison — only worth the extra ~1 hour if the loss-based 5-fold
+   mean disappoints. Not a 3-way comparison; a clean two-run comparison if done.
+7. Whether to regenerate the CPU-era Markov chain/Digital Twin figures
+   (`markov_heatmap.png`, `subgroup_trajectories.png`, `markov_matrices.pkl`) —
+   they may have been built on the same broken all-`NaT` `visit_date` bug found
+   in Cell 4.
+8. Mention Fold 3's weak performance (AUC 0.8125, early-stopped at epoch 7) in
+   the thesis's results/discussion as an example of genuine fold-to-fold variance.
+
+### Outstanding hygiene
+9. **Rotate the Azure client secret** — still sitting in plaintext in this repo's
+   git history, unrotated since flagged at the start of this session.
+10. Delete the merged feature branch `claude/gpu-accuracy-testing-local-7ys9vo`
+    from GitHub if desired — a prior attempt hit a 403 through this session's git
+    proxy; needs to be done from the GitHub UI directly.
