@@ -24,7 +24,15 @@ inference.
 
 ## Current State (where the work stands right now)
 
-### GPU Lab Machine — READY, actively training
+**The entire notebook (Cells 1–33, plus 8B and 14B) has now run end to end on
+the GPU lab machine.** Main training, ablation study, and the full
+post-training/Digital-Twin pipeline are all complete. What's left is not
+more training — it's (1) investigating the two flagged issues below (age
+sensitivity direction, Cell 33's zero-tensor fallback) before anything goes
+into the thesis or `dashboard.py`, and (2) getting the files off the lab PC
+(see `Continue_From_Home_Guide.md`).
+
+### GPU Lab Machine — training complete, no longer needed for this project
 - Machine: University lab PC, Windows, `bdt-env` conda env, Python 3.10
 - GPU: NVIDIA RTX 5070 Ti — 17.1 GB VRAM, PyTorch `2.11.0+cu128`, CUDA confirmed working
 - All dependencies installed and verified in `bdt-env`
@@ -344,10 +352,10 @@ Two findings worth real discussion-section space:
    name explicitly, not evidence that tabular data is unexpectedly
    powerful on its own.
 
-### Post-training pipeline — Cells 18, 20, 22, 24, 26 COMPLETE
-4. ~~Cell 9 → 18 → 20 → 22 → 24 → 26–32 → 33~~ — Cells **18, 20, 22, 24, 26**
-   done. Remaining: **27–32** (rest of the what-if/simulation cells) → **33**
-   (single-patient inference — the cell relevant to `dashboard.py`).
+### Post-training pipeline — ALL CELLS (18–33) COMPLETE
+4. ~~Cell 9 → 18 → 20 → 22 → 24 → 26–32 → 33~~ — **done, full notebook run
+   end to end.** Two items below are flagged for follow-up before anything
+   here goes into the thesis or `dashboard.py` as-is — see items 4c and 4g.
 
    - **Cell 18 (evaluation)**: macro AUC by class — CN 0.982, Dementia 0.958,
      MCI 0.913 (averages to ≈0.951, consistent with Fold 4's loaded
@@ -379,6 +387,41 @@ Two findings worth real discussion-section space:
      stating explicitly in the thesis that these are simulated/assumed
      effect sizes, not calibrated outcomes — otherwise it reads as an
      overclaim.
+   - **Cell 29 (cognitive reserve)**: lower education → higher risk
+     (16.9% vs 15.2% at year 5) — correct direction, good face validity.
+   - **Cell 30 (age sensitivity) — 🚩 LIKELY BUG, do not cite as-is.**
+     P(Dementia@5yr) *decreases* monotonically as simulated age increases
+     (65→69.8%, 70→52.4%, 75→31.0%, 80→19.4%, 85→16.5%), MRI held constant.
+     Age is one of the strongest known dementia risk factors — real
+     epidemiology goes the other way, and this is a clean monotonic
+     reversal, not noisy scatter, which points to an actual bug (most
+     likely in how the AGE tabular feature is scaled/fed into the model
+     when swept away from the patient's real value) rather than a genuine
+     finding. **Do not cite this cell's output in the thesis until
+     investigated** — reporting "risk falls with age" as a real result
+     would visibly undermine the model's credibility.
+   - **Cell 31 (subgroup comparison)**: CN (26.3%) < MCI (64.4%) < Dementia
+     (95.1%) at year 5 — correctly ordered, good face validity.
+   - **Cell 32 (early vs. late intervention)**: earlier treatment → lower
+     risk (95.7% vs 96.5% vs 97.3% untreated, patient 128_S_0167) — correct
+     direction, though this patient is already at ~97% baseline risk,
+     leaving little room to show a bigger effect. Consider picking a less
+     severe example patient for the actual thesis figure.
+   - **Cell 33 (single-patient inference) — 🚩 DEPLOYMENT RISK for
+     `dashboard.py`.** The demo patient (`custom_patient`) had no cached
+     scan; the pipeline logged *"Cache miss — attempting blob download...
+     Download failed... using zero tensor (tabular only)"* and then
+     produced a normal-looking prediction (52.2% Dementia) from a **blank
+     image plus only the 4 tabular values** — with no visible indication to
+     the end user that the image branch contributed nothing. Since
+     `dashboard.py`'s whole purpose is inference on *new* patients who by
+     definition won't be in `tensor_cache`, this exact fallback path is the
+     one that will fire in real use. **Before pointing the dashboard at
+     these checkpoints**, either (a) require a real uploaded scan for
+     genuine new-patient inference and reject/warn if none is available, or
+     (b) visibly flag any zero-tensor-fallback prediction as
+     low-confidence/tabular-only — it currently looks identical to a real
+     image-based prediction, which is a correctness issue, not cosmetic.
 
 ### Worth deciding on
 6. ~~Whether to run a second, AUC-based-checkpoint-selection training run~~ —
