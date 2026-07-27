@@ -240,6 +240,27 @@ this is a good thesis discussion point, not a discarded result.
   `fold_results` is still in the kernel. **Run to completion** — see the
   Cell 8B results table under Current State above, plus the selection-bias
   analysis of why the loss-selected run remains the primary result.
+- **Cell 13 hardened against NaN**: `A3_CNN_MLP_Fusion` crashed twice with
+  `ValueError: Input contains NaN` (fp16 overflow under AMP autocast,
+  producing non-finite logits that failed `roc_auc_score`'s strict
+  finite-value check). Added: skip any training batch whose loss is
+  non-finite instead of letting it corrupt the model's weights; gradient
+  clipping (`max_norm=1.0`) after unscaling AMP gradients; treat a
+  non-finite validation-probability epoch as non-improving (counts against
+  patience) instead of raising. Third attempt (with both guards active)
+  completed cleanly (AUC=0.9389), so the fp32 fallback below wasn't needed
+  for this run, but is kept as a safety net.
+- **Cell 14 made resilient to a single variant failing**: wrapped the
+  `run_ablation_variant(...)` call in `try/except` — a variant that still
+  fails is logged and skipped (not added to `completed`, so a later rerun
+  retries just that one) instead of crashing the whole loop and taking down
+  every variant after it.
+- **Added Cell 14B** (new, inserted right after Cell 14, same
+  non-renumbering pattern as Cell 8B): retries any variant still missing
+  from `completed` with `USE_AMP` forced to `False` for that retry only,
+  removing the fp16-overflow path entirely. Ended up unneeded this run
+  (A3 succeeded on retry under Cell 13's guards) but stays in the notebook
+  as a one-click fallback if a future variant fails outright.
 
 ---
 
@@ -273,19 +294,61 @@ this is a good thesis discussion point, not a discarded result.
    under **Current State**. Conclusion: keep this as a methodology discussion
    point (validation-metric selection bias, why loss-based early stopping is
    more defensible), not as a replacement headline number.
-3. Track down `ablation_results.json` — confirmed missing from the Azure blob
-   transfer on two independent download attempts. Check the Azure Portal/Storage
-   Explorer for `adni-data/gpu_transfer/checkpoints/` directly before running
-   Cell 14, so the completed CPU ablation results (A0, A1, B1–B4) aren't redone.
+3. ~~Track down `ablation_results.json`~~ — moot. Cell 14's new path
+   (`checkpoints/ablation/ablation_results.json`) is separate from whatever
+   CPU-era file was expected at the top-level `checkpoints/` path, so all 7
+   DL variants were trained fresh on GPU regardless. See the completed
+   ablation study results below.
 
-### Post-training pipeline (run in order)
+### Ablation study — COMPLETE (all 7 DL variants + 4 classical baselines)
+
+All trained/evaluated on the identical Fold 4 split (n=310 validation
+scans), matching the main run's best fold:
+
+| Model | AUC (Macro) | Accuracy | Macro F1 | AUC CN | AUC MCI | AUC Dementia |
+|---|---|---|---|---|---|---|
+| A5_Transformer_1Layer | 0.9563 | 0.8516 | 0.8552 | 0.9877 | 0.9228 | 0.9586 |
+| A4_CNN_Linear_Fusion | 0.9487 | 0.8419 | 0.8454 | 0.9803 | 0.9132 | 0.9526 |
+| **A0_NeuroDT_Full** | **0.9486** | 0.8516 | 0.8550 | 0.9815 | 0.9069 | 0.9575 |
+| A2_CNN_Only | 0.9474 | 0.8452 | 0.8497 | 0.9816 | 0.9163 | 0.9442 |
+| B3_Random_Forest | 0.9428 | 0.8258 | 0.8298 | 0.9825 | 0.9002 | 0.9458 |
+| B4_Gradient_Boosting | 0.9407 | 0.8226 | 0.8253 | 0.9801 | 0.8977 | 0.9442 |
+| A3_CNN_MLP_Fusion | 0.9389 | 0.8387 | 0.8436 | 0.9802 | 0.8970 | 0.9396 |
+| A6_No_Class_Weights | 0.9294 | 0.7839 | 0.7906 | 0.9745 | 0.8666 | 0.9472 |
+| A1_Tabular_Only | 0.8716 | 0.6839 | 0.6750 | 0.9193 | 0.7717 | 0.9237 |
+| B2_SVM_RBF | 0.8711 | 0.7355 | 0.7348 | 0.9337 | 0.7686 | 0.9109 |
+| B1_Logistic_Regression | 0.8649 | 0.7097 | 0.7073 | 0.9105 | 0.7589 | 0.9255 |
+
+Saved to `checkpoints/ablation/ablation_results_table.csv`, plus
+`fig_ablation_auc_comparison.png` and `fig_ablation_perclass_auc.png`.
+
+**Read with caution — this is single-fold (n=310), not 5-fold CV.** The top
+5 models (A0, A2, A4, A5, B3) all sit within ~0.01 AUC of each other —
+that's normal fold-level noise on 310 samples, not a real ranking. Don't
+report "A5 beats the full model" as a finding; the F1 delta (+0.0002) is
+essentially zero.
+
+Two findings worth real discussion-section space:
+
+1. **CNN-only (A2) ≈ full multimodal (A0)** — 0.9474 vs 0.9486. Dropping the
+   tabular branch costs almost nothing, i.e. the imaging branch alone
+   carries nearly all the signal in this fusion design.
+2. **Random Forest/Gradient Boosting on the same 4 tabular features
+   (0.9428/0.9407) beat the deep Tabular-only MLP (A1, 0.8716) by ~7 points
+   of AUC** — a capacity/architecture mismatch (a large MLP is likely
+   poorly suited to a 4-dimensional input; tree ensembles are naturally
+   strong on small tabular sets). Separately: one of those 4 features is
+   **MMSE**, which is itself part of ADNI's clinical criteria for
+   diagnosing MCI/Dementia — so ~0.94 AUC from 4 features including a
+   near-diagnostic-criterion score is a legitimate label-leakage caveat to
+   name explicitly, not evidence that tabular data is unexpectedly
+   powerful on its own.
+
+### Post-training pipeline (run in order) — not yet started
 4. Cell 9 (recovery, only if the kernel died) → **18** (evaluation) → **20**
    (Grad-CAM) → **22** (Markov chain — now safe, given the `visit_date` fix) →
    **24** (Digital Twin assembly) → **26–32** (simulations) → **33** (single
    patient inference — the cell relevant to `dashboard.py`)
-5. Ablation study: **13** → **14** (DL variants A2–A6, ~3–4 hrs) → **15**
-   (classical ML baselines) → **16** (compile results table) — this is the work
-   the CPU run couldn't do at all.
 
 ### Worth deciding on
 6. ~~Whether to run a second, AUC-based-checkpoint-selection training run~~ —
