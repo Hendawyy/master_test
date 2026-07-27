@@ -324,12 +324,11 @@ this is a good thesis discussion point, not a discarded result.
 ## Next Steps (things to try next)
 
 ### Immediate
-0. **Re-run Cell 30 once** (fast, no retraining) — picks up the dedup fix so
-   its multi-patient summary count is correct (was "1/4", should read
-   "N/5" after the fix). Then **copy `checkpoints\` (final, complete
-   version) and `tensor_cache\` to the flash drive** — nothing else is
-   writing to either folder at this point. See
-   `Continue_From_Home_Guide.md` for what to do with them next.
+0. ~~Re-run Cell 30~~ — **done, confirmed correct (2/5).** Nothing left
+   pending in the notebook. **Copy `checkpoints\` (final, complete
+   version) and `tensor_cache\` to the flash drive now** — nothing is
+   writing to either folder anymore. See `Continue_From_Home_Guide.md` for
+   what to do with them next.
 0b. Copy `best_model_fold4.pth` + `markov_matrices.pkl` into
    `dashboard.py`'s `CHECKPOINT_DIR` when ready to switch the dashboard to
    the GPU model — no other dashboard changes needed, the code-side fixes
@@ -432,26 +431,25 @@ Two findings worth real discussion-section space:
      overclaim.
    - **Cell 29 (cognitive reserve)**: lower education → higher risk
      (16.9% vs 15.2% at year 5) — correct direction, good face validity.
-   - **Cell 30 (age sensitivity) — RESOLVED, not a bug.** Rewrote the cell to
-     sweep AGE across 5 sample MCI patients instead of 1. Result: only 1 of 4
-     unique patients showed risk falling with age; the rest were mixed
-     (one patient increased, one decreased, one had inconsistent direction
-     across two of their own visits). **Direction varies by patient — this
-     is a weak/noisy AGE signal in the tabular branch, not a systematic
-     code bug**, consistent with the ablation finding that the tabular
-     branch barely matters once imaging is present (A2_CNN_Only ≈ A0_Full).
-     Conclusion for the thesis: do not present any single patient's
-     age-sweep as a general finding; report this instability explicitly as
-     a limitation of the tabular AGE feature's weak/inconsistent learned
-     effect, distinct from the imaging branch's real signal.
-     — Found and fixed a **counting bug in this diagnostic itself**: the
-     first 5 rows of `df_val_best`'s MCI patients included the same
-     `patient_id` twice (two different visits/scans), which silently
-     collapsed to 4 entries in the results dict and made the summary read
-     "1/4" — logically correct but based on 4 unique patients, not 5.
-     Fixed by deduplicating on `patient_id` before sampling. **Re-run Cell
-     30 once more** (fast, no retraining) to get the corrected 5-unique-
-     patient count before citing any number from it.
+   - **Cell 30 (age sensitivity) — RESOLVED, not a bug. Final confirmed
+     result: 2/5 unique patients** show risk increasing with age
+     (016_S_1149, 099_S_0880, 128_S_0167 decrease; 057_S_1007, 109_S_1114
+     increase — 128_S_0167 is pinned near 99–100% at every age, the same
+     near-ceiling-risk patient flagged in Cell 32). **Direction genuinely
+     varies by patient — a weak/noisy AGE signal in the tabular branch, not
+     a systematic code bug**, consistent with the ablation finding that the
+     tabular branch barely matters once imaging is present (A2_CNN_Only ≈
+     A0_Full). Conclusion for the thesis: do not present any single
+     patient's age-sweep as a general finding; report this instability
+     explicitly as a limitation of the tabular AGE feature's weak/
+     inconsistent learned effect, distinct from the imaging branch's real
+     signal.
+     — Along the way, found and fixed a **counting bug in this diagnostic
+     itself**: the first pass sampled 5 rows without deduplicating on
+     `patient_id`, so one patient's two visits collided in the results
+     dict and the summary read "1/4" instead of "1/5". Fixed by
+     deduplicating on `patient_id` before sampling; re-run confirmed
+     correct (2/5, matching 5 genuinely unique patients).
    - **Cell 31 (subgroup comparison)**: CN (26.3%) < MCI (64.4%) < Dementia
      (95.1%) at year 5 — correctly ordered, good face validity.
    - **Cell 32 (early vs. late intervention)**: earlier treatment → lower
