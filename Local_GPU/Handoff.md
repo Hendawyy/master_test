@@ -344,11 +344,41 @@ Two findings worth real discussion-section space:
    name explicitly, not evidence that tabular data is unexpectedly
    powerful on its own.
 
-### Post-training pipeline (run in order) — not yet started
-4. Cell 9 (recovery, only if the kernel died) → **18** (evaluation) → **20**
-   (Grad-CAM) → **22** (Markov chain — now safe, given the `visit_date` fix) →
-   **24** (Digital Twin assembly) → **26–32** (simulations) → **33** (single
-   patient inference — the cell relevant to `dashboard.py`)
+### Post-training pipeline — Cells 18, 20, 22, 24, 26 COMPLETE
+4. ~~Cell 9 → 18 → 20 → 22 → 24 → 26–32 → 33~~ — Cells **18, 20, 22, 24, 26**
+   done. Remaining: **27–32** (rest of the what-if/simulation cells) → **33**
+   (single-patient inference — the cell relevant to `dashboard.py`).
+
+   - **Cell 18 (evaluation)**: macro AUC by class — CN 0.982, Dementia 0.958,
+     MCI 0.913 (averages to ≈0.951, consistent with Fold 4's loaded
+     checkpoint, val_AUC=0.9511 — good cross-check). Confusion matrix and
+     SHAP summary saved. **Check**: SHAP plot only shows 3 of 4 tabular
+     features (no APOE4 bar) — could be genuinely near-zero contribution
+     once imaging + other features are in, or the plotting code could be
+     dropping it silently. Worth a quick look, not urgent.
+   - **Cell 20 (Grad-CAM)**: one example (patient 057_S_1373, Dementia,
+     correctly predicted) shows a fairly **diffuse, whole-hemisphere**
+     activation pattern rather than a focal hippocampal/medial-temporal-lobe
+     region (the classic AD-relevant atrophy site). One example proves
+     nothing either way — run it on several more patients (correct and
+     incorrect, all 3 classes) before drawing conclusions. If the pattern
+     stays diffuse rather than converging on temporal-lobe/hippocampal
+     regions across many patients, that's a real caveat for the thesis
+     discussion on learned-vs-shortcut features, tying back to the earlier
+     "is it learning or cheating" question from this session.
+   - **Cell 22 (Markov chain)**: good clinical face-validity. Dementia is a
+     correctly absorbing state (0.997–1.00 self-transition). **APOE4-positive
+     patients show a higher MCI→Dementia transition rate (0.184) than
+     APOE4-negative (0.133)** — the correct clinical direction (APOE4 is a
+     known progression risk factor), reproduced without being told to.
+     Worth citing as external/face validation in the write-up.
+   - **Cell 26 (what-if: APOE4 + drug intervention)**: Lecanemab/Donanemab
+     bring 5-year Dementia probability (patient 016_S_1149) to 12.1%/11.9%,
+     *below* even the no-APOE4 baseline (14.5%). Worth double-checking the
+     assumed effect-size parameters (30%/35%) against real trial data, and
+     stating explicitly in the thesis that these are simulated/assumed
+     effect sizes, not calibrated outcomes — otherwise it reads as an
+     overclaim.
 
 ### Worth deciding on
 6. ~~Whether to run a second, AUC-based-checkpoint-selection training run~~ —
