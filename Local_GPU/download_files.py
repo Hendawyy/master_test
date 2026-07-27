@@ -135,9 +135,28 @@ for i, blob in enumerate(blobs):
         print(f"  {done_this_run}/{to_fetch} downloaded this run | "
               f"elapsed {elapsed/60:.1f} min | ~{eta_sec/60:.1f} min remaining")
 
+# ── Download ablation results (checkpoints/ablation/) ─────────────
+abl_dir = ckpt_dir / "ablation"
+abl_dir.mkdir(parents=True, exist_ok=True)
+cleanup_stale_files(abl_dir)
+
+blobs = list_blobs_with_retry("gpu_transfer/checkpoints_ablation/")
+for blob in blobs:
+    fname = Path(blob.name).name
+    dest  = abl_dir / fname
+    if dest.exists() or fname in already_elsewhere:
+        print(f"  = ablation/{fname} (already downloaded)")
+        continue
+    print(f"Downloading ablation/{fname}...")
+    if download_with_retry(blob.name, dest):
+        print(f"  ✓ ablation/{fname}")
+    else:
+        failed.append(f"ablation/{fname}")
+
 print(f"\n✓ Done. ({done_this_run} downloaded this run, {skipped} were already present)")
 print(f"  Total time this run: {(time.time() - start)/60:.1f} min")
 print(f"  Checkpoints: {ckpt_dir}")
+print(f"  Ablation results: {abl_dir}")
 print(f"  Tensor cache: {cache_dir}")
 if failed:
     print(f"\n⚠ {len(failed)} file(s) failed after {MAX_RETRIES} retries — rerun the script to retry them:")
