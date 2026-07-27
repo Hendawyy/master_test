@@ -269,6 +269,39 @@ this is a good thesis discussion point, not a discarded result.
   removing the fp16-overflow path entirely. Ended up unneeded this run
   (A3 succeeded on retry under Cell 13's guards) but stays in the notebook
   as a one-click fallback if a future variant fails outright.
+- **Cell 24 (`NeuroDT` class)**: `_get_diagnosis_probs` now returns
+  `(probs, image_available)` instead of just `probs`; `predict_patient()`
+  and `simulate_intervention()` propagate `image_available` in their
+  result dicts, so every caller (Cell 33, and `dashboard.py` in the
+  future) can tell a real image-based prediction apart from a
+  tabular-only zero-tensor fallback instead of it failing silently.
+- **Cell 30 (age sensitivity)**: rewritten to check 5 unique patients
+  instead of 1, to distinguish a real bug from a weak/noisy tabular
+  feature. Also fixed a duplicate-`patient_id` bug in this new check
+  itself (dedup on `patient_id` before sampling).
+- **Cell 33 (single-patient inference)**: surfaces `image_available` as
+  an unmissable warning at every point it matters — console banner, the
+  predicted-class line, the saved figure's title (rendered in red), and
+  the clinical summary header.
+
+### `dashboard.py` (`Azure/dashboard.py`)
+- Fixed `load_assets()` missing `weights_only=False` — would crash loading
+  *any* checkpoint (CPU or GPU) on PyTorch 2.6+, since these checkpoints
+  embed a `StandardScaler`. Same bug as the notebook's `torch.load()` fix,
+  never applied here.
+- Fixed the identical silent zero-tensor fallback in `run_inference()` —
+  tracks `image_available`, surfaces a warning immediately after inference
+  and as a persistent `st.error()` banner on every rerun (session-state
+  backed, matching this file's existing state-persistence pattern).
+- Replaced every hardcoded CPU-era metric (AUC 0.912, per-class
+  0.957/0.936/0.844, 79% accuracy) with the real GPU numbers — Fold 4 AUC
+  0.951 (per-class CN 0.982 / Dementia 0.958 / MCI 0.913), 85% accuracy,
+  0.85 macro F1 — and added the honest 5-fold CV estimate (0.871 ± 0.046)
+  alongside Fold 4's number everywhere it's shown (header, sidebar, About
+  tab, both PDF reports), so a single best fold isn't presented as the
+  model's general expected performance.
+- **Not yet done**: the checkpoint files themselves haven't been copied
+  into `dashboard.py`'s `CHECKPOINT_DIR` — see Next Steps.
 
 ---
 
@@ -291,6 +324,16 @@ this is a good thesis discussion point, not a discarded result.
 ## Next Steps (things to try next)
 
 ### Immediate
+0. **Re-run Cell 30 once** (fast, no retraining) — picks up the dedup fix so
+   its multi-patient summary count is correct (was "1/4", should read
+   "N/5" after the fix). Then **copy `checkpoints\` (final, complete
+   version) and `tensor_cache\` to the flash drive** — nothing else is
+   writing to either folder at this point. See
+   `Continue_From_Home_Guide.md` for what to do with them next.
+0b. Copy `best_model_fold4.pth` + `markov_matrices.pkl` into
+   `dashboard.py`'s `CHECKPOINT_DIR` when ready to switch the dashboard to
+   the GPU model — no other dashboard changes needed, the code-side fixes
+   are already done (see Changed, above).
 1. ~~Let Cell 8 finish Fold 5~~ — **done.** Loss-selected 5-fold CV mean AUC:
    **0.8706 ± 0.0461** (Folds: 0.8821, 0.8591, 0.8125, 0.9511, 0.8481).
 2. Run **Cell 11 (COMPARE)** for the formal writeup of the GPU 5-fold mean AUC
@@ -389,17 +432,26 @@ Two findings worth real discussion-section space:
      overclaim.
    - **Cell 29 (cognitive reserve)**: lower education → higher risk
      (16.9% vs 15.2% at year 5) — correct direction, good face validity.
-   - **Cell 30 (age sensitivity) — 🚩 LIKELY BUG, do not cite as-is.**
-     P(Dementia@5yr) *decreases* monotonically as simulated age increases
-     (65→69.8%, 70→52.4%, 75→31.0%, 80→19.4%, 85→16.5%), MRI held constant.
-     Age is one of the strongest known dementia risk factors — real
-     epidemiology goes the other way, and this is a clean monotonic
-     reversal, not noisy scatter, which points to an actual bug (most
-     likely in how the AGE tabular feature is scaled/fed into the model
-     when swept away from the patient's real value) rather than a genuine
-     finding. **Do not cite this cell's output in the thesis until
-     investigated** — reporting "risk falls with age" as a real result
-     would visibly undermine the model's credibility.
+   - **Cell 30 (age sensitivity) — RESOLVED, not a bug.** Rewrote the cell to
+     sweep AGE across 5 sample MCI patients instead of 1. Result: only 1 of 4
+     unique patients showed risk falling with age; the rest were mixed
+     (one patient increased, one decreased, one had inconsistent direction
+     across two of their own visits). **Direction varies by patient — this
+     is a weak/noisy AGE signal in the tabular branch, not a systematic
+     code bug**, consistent with the ablation finding that the tabular
+     branch barely matters once imaging is present (A2_CNN_Only ≈ A0_Full).
+     Conclusion for the thesis: do not present any single patient's
+     age-sweep as a general finding; report this instability explicitly as
+     a limitation of the tabular AGE feature's weak/inconsistent learned
+     effect, distinct from the imaging branch's real signal.
+     — Found and fixed a **counting bug in this diagnostic itself**: the
+     first 5 rows of `df_val_best`'s MCI patients included the same
+     `patient_id` twice (two different visits/scans), which silently
+     collapsed to 4 entries in the results dict and made the summary read
+     "1/4" — logically correct but based on 4 unique patients, not 5.
+     Fixed by deduplicating on `patient_id` before sampling. **Re-run Cell
+     30 once more** (fast, no retraining) to get the corrected 5-unique-
+     patient count before citing any number from it.
    - **Cell 31 (subgroup comparison)**: CN (26.3%) < MCI (64.4%) < Dementia
      (95.1%) at year 5 — correctly ordered, good face validity.
    - **Cell 32 (early vs. late intervention)**: earlier treatment → lower
@@ -407,21 +459,29 @@ Two findings worth real discussion-section space:
      direction, though this patient is already at ~97% baseline risk,
      leaving little room to show a bigger effect. Consider picking a less
      severe example patient for the actual thesis figure.
-   - **Cell 33 (single-patient inference) — 🚩 DEPLOYMENT RISK for
-     `dashboard.py`.** The demo patient (`custom_patient`) had no cached
-     scan; the pipeline logged *"Cache miss — attempting blob download...
-     Download failed... using zero tensor (tabular only)"* and then
-     produced a normal-looking prediction (52.2% Dementia) from a **blank
-     image plus only the 4 tabular values** — with no visible indication to
-     the end user that the image branch contributed nothing. Since
-     `dashboard.py`'s whole purpose is inference on *new* patients who by
-     definition won't be in `tensor_cache`, this exact fallback path is the
-     one that will fire in real use. **Before pointing the dashboard at
-     these checkpoints**, either (a) require a real uploaded scan for
-     genuine new-patient inference and reject/warn if none is available, or
-     (b) visibly flag any zero-tensor-fallback prediction as
-     low-confidence/tabular-only — it currently looks identical to a real
-     image-based prediction, which is a correctness issue, not cosmetic.
+   - **Cell 33 (single-patient inference) — FIXED and confirmed working.**
+     Root cause lived in Cell 24's `NeuroDT._get_diagnosis_probs`, which
+     silently substituted a zero image tensor with no signal to the
+     caller. Fixed: `_get_diagnosis_probs` now returns
+     `(probs, image_available)`; `predict_patient()` and
+     `simulate_intervention()` propagate `image_available` in their result
+     dicts; Cell 33 checks it after every call (Step 1 classifier, and
+     separately for the 4 drug/age/education scenario calls, since those
+     go through a different internal cache lookup). Re-ran with the same
+     no-scan demo patient — confirmed working: prints an unmissable
+     warning banner before the diagnosis, appends `[TABULAR-ONLY -- NO
+     SCAN]` to the predicted-class line, the saved figure's title renders
+     in red with the same suffix, and the clinical summary leads with an
+     explicit "TABULAR-ONLY" warning. `dashboard.py` got the identical fix
+     (see Changed, below) since it has the exact same fallback pattern in
+     its own `run_inference()`.
+     — Noted but not fixed (non-blocking): the Monte Carlo simulation
+     (`_monte_carlo`, n=1,000 draws) has no fixed random seed, so re-running
+     Cell 33 on the same patient gives slightly different numbers each time
+     (e.g. baseline 5yr risk 85.7% → 84.9% between two runs). Not a
+     correctness issue, but worth a `np.random.seed(...)` before citing an
+     exact figure in the thesis, so the number in the write-up matches
+     whatever's in the saved PNG.
 
 ### Worth deciding on
 6. ~~Whether to run a second, AUC-based-checkpoint-selection training run~~ —
