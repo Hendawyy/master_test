@@ -73,8 +73,50 @@ one clean non-early-stopped fold). Peak-AUC-if-selected-differently: Fold 1
 that pattern, decided to run a **second, separate** full training pass with
 AUC-based checkpoint selection for a clean two-run comparison (not a 3-way
 comparison — see chat history for the reasoning). That second pass is
-**Cell 8B** — see **Changed**, below. Not yet run; the lab PC has the code
-in hand and will run it once free.
+**Cell 8B** — see **Changed**, below.
+
+**Cell 8B, AUC-selected 5-fold run — COMPLETE:**
+
+| Fold | Loss-selected AUC | AUC-selected AUC | Δ |
+|---|---|---|---|
+| 1 | 0.8821 | 0.9439 | +0.0618 |
+| 2 | 0.8591 | 0.9398 | +0.0808 |
+| 3 | 0.8125 | 0.9265 | +0.1140 |
+| 4 | 0.9511 | 0.9451 | −0.0059 |
+| 5 | 0.8481 | 0.9342 | +0.0861 |
+| **Mean** | **0.8706 ± 0.0461** | **0.9379 ± 0.0069** | — |
+
+At face value this looks like a large, consistent win for AUC-based selection.
+It almost certainly is not a genuine generalization improvement, for two
+compounding reasons visible directly in the per-epoch logs:
+
+1. **All 5 AUC-selected folds ran the full 20 epochs with no early stop**,
+   because AUC on a noisy ~310-sample validation fold rarely gets *worse* for
+   5 consecutive epochs the way loss does — so patience never triggers. By
+   epoch 18–20 every fold shows `tr_loss≈0.05–0.09, tr_acc≈0.97–0.99` — deep
+   train-set memorization. The loss-selected run, by contrast, early-stopped
+   4 of 5 folds specifically to avoid training this far into that regime.
+2. **The selected checkpoint is the argmax of a noisy per-epoch metric on a
+   small (~310-sample) validation set**, evaluated using the *same* metric
+   being reported. Val AUC visibly bounces ±0.01–0.03 epoch-to-epoch late in
+   every fold (e.g. Fold 2: 0.9398→0.9398→0.9392 across ep.18–20; Fold 5:
+   0.9146→0.9192→0.9342→0.9315→0.9308 across ep.16–20). Picking the single
+   epoch that happened to land highest is a biased, optimistic estimator of
+   true generalization — structurally similar to reporting the best of 20
+   lottery draws as the typical draw. This also explains the suspiciously
+   *tight* std (0.0069 vs. the loss-selected run's 0.0461): cherry-picking a
+   per-epoch max compresses apparent fold-to-fold variance rather than
+   reflecting genuinely more consistent generalization.
+
+Net read: the model **is** learning real signal in both runs (val AUC is well
+above chance — 0.5 — in every fold of both runs). But the AUC-selected
+number is inflated on top of that real signal by training deep into
+memorization *and* then selecting on the same noisy metric being reported.
+**The loss-selected result (0.8706 ± 0.0461) is the one to report as the
+primary, defensible 5-fold CV estimate.** The AUC-selected run is kept as an
+explicit methodological discussion point (selection-on-validation-metric
+bias + why loss-based early stopping is the more conservative choice) —
+this is a good thesis discussion point, not a discarded result.
 
 ### Repo / git state
 - Working on `master` branch directly (the original feature branch's PR #1 was
@@ -195,7 +237,9 @@ in hand and will run it once free.
   `best_model_fold{N}_aucsel.pth` files so Cell 8's loss-selected checkpoints
   are never overwritten; resumable the same way Cell 8 is. Prints a
   loss-selected-vs-AUC-selected comparison table at the end if Cell 8's
-  `fold_results` is still in the kernel. Not yet run.
+  `fold_results` is still in the kernel. **Run to completion** — see the
+  Cell 8B results table under Current State above, plus the selection-bias
+  analysis of why the loss-selected run remains the primary result.
 
 ---
 
@@ -222,12 +266,13 @@ in hand and will run it once free.
    **0.8706 ± 0.0461** (Folds: 0.8821, 0.8591, 0.8125, 0.9511, 0.8481).
 2. Run **Cell 11 (COMPARE)** for the formal writeup of the GPU 5-fold mean AUC
    ± std vs. the CPU's single-fold 0.9120 — this is the actual fair comparison,
-   not any individual fold along the way.
-2b. Run the new **Cell 8B** (AUC-based checkpoint selection) — a second,
-   separate 5-fold run to check whether the AUC-based selection closes the gap
-   seen in Folds 1–3 (see **Current State**, above). Writes to distinct
-   `*_aucsel.pth` files, so it's safe to run without disturbing the completed
-   loss-selected results. Prints a side-by-side comparison table at the end.
+   not any individual fold along the way. Use the **loss-selected** number
+   (0.8706 ± 0.0461) as the headline GPU result, not the AUC-selected one.
+2b. ~~Run Cell 8B (AUC-based checkpoint selection)~~ — **done.** Mean AUC
+   0.9379 ± 0.0069 — see the comparison table and selection-bias analysis
+   under **Current State**. Conclusion: keep this as a methodology discussion
+   point (validation-metric selection bias, why loss-based early stopping is
+   more defensible), not as a replacement headline number.
 3. Track down `ablation_results.json` — confirmed missing from the Azure blob
    transfer on two independent download attempts. Check the Azure Portal/Storage
    Explorer for `adni-data/gpu_transfer/checkpoints/` directly before running
@@ -243,9 +288,15 @@ in hand and will run it once free.
    the CPU run couldn't do at all.
 
 ### Worth deciding on
-6. Whether to run a **second**, separate AUC-based-checkpoint-selection training
-   run for comparison — only worth the extra ~1 hour if the loss-based 5-fold
-   mean disappoints. Not a 3-way comparison; a clean two-run comparison if done.
+6. ~~Whether to run a second, AUC-based-checkpoint-selection training run~~ —
+   **done** (Cell 8B). Decision: report loss-selected (0.8706 ± 0.0461) as the
+   primary thesis number; write up the AUC-selected run (0.9379 ± 0.0069) as a
+   discussion section on validation-metric selection bias — every AUC-selected
+   fold trained the full 20 epochs into visible train-set memorization
+   (tr_acc≈0.97–0.99, tr_loss≈0.05–0.09 by ep.18–20) with no early stop,
+   then had its checkpoint picked by argmax of a noisy metric on a ~310-sample
+   validation fold, which both inflates the mean and artificially compresses
+   the reported std.
 7. Whether to regenerate the CPU-era Markov chain/Digital Twin figures
    (`markov_heatmap.png`, `subgroup_trajectories.png`, `markov_matrices.pkl`) —
    they may have been built on the same broken all-`NaT` `visit_date` bug found
