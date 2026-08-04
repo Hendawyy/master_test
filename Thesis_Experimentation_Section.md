@@ -9,6 +9,30 @@ cross-validated result, a full ablation study, and end-to-end validation of
 the Digital Twin prognostic pipeline, and concludes with deployment of the
 resulting model to a production clinical dashboard.
 
+Both experiments implement the same three-stage architecture proposed in
+Section 7 (Figure 7.1): (1) offline data preparation and model training,
+(2) the BDT core engine, producing personalized predictions and simulations
+for a given patient, and (3) clinical application and interaction via an
+explainability layer and dashboard. The CPU and GPU experiments below are
+therefore two runs of one framework, not two different systems -- they
+differ in how completely each run executed (Section 4.1.4), not in what
+was built.
+
+### 4.0.1 Deviations from the Proposed Framework
+
+Table 4.0 records where the as-built system departs from Figure 7.1, for
+transparency in the results that follow.
+
+**Table 4.0 -- Implementation deviations from the proposed framework**
+
+| Proposed (Fig. 7.1) | As built | Reason |
+|---|---|---|
+| Dataset sources: MRIs, ADNIMERGE, **RECCMEDS** | MRIs + ADNIMERGE only | The medications log was not integrated; simulated drug intervention uses fixed literature-informed effect sizes (Lecanemab -30%, Donanemab -35% on MCI to Dementia transition probability) rather than per-patient medication history. |
+| **Hidden Markov Chains** for progression modeling | Empirical (fully-observed) Markov chain, APOE4-stratified | Transition probabilities were estimated directly from observed diagnosis sequences across longitudinal visits. No latent-state HMM training (e.g., Baum-Welch) was performed, since diagnostic state is directly observed at each visit rather than hidden. |
+| Explainability Module: SHAP, Grad-CAM, **Attention Maps** | SHAP + Grad-CAM only | Transformer attention-weight visualization was not implemented or evaluated in this work. |
+| **3D Brain Visualization** (atrophy/activation maps) | 2D multi-planar Grad-CAM overlays (axial/sagittal/coronal) | The dashboard renders orthogonal slice views with heatmap overlay rather than an interactive volumetric 3D render. |
+| Ablation study | Not in the original framework diagram | Added during Experiment 2 as a substantial methodological contribution (Section 4.2.5) -- 7 architecture variants plus 4 classical baselines. |
+
 ---
 
 ## 4.1 Experiment 1: Training on CPU-Based Compute
