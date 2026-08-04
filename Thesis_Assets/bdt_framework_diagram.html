@@ -8,6 +8,10 @@
     --card:#FFFFFF; --card-line:#DADFE4;
     --tag-kept:#5B6472; --tag-added:#3C8768; --tag-removed:#C0392B; --tag-renamed:#B4791E;
     --tag-kept-bg:#EDEFF1; --tag-added-bg:#E1EFE4; --tag-removed-bg:#F7E4E1; --tag-renamed-bg:#F6ECD3;
+    --cpu-line:#B5563B; --cpu-ink:#8C4028; --cpu-bg:#F5E4DC;
+    --gpu-line:#7B5CC7; --gpu-ink:#5B3F9E; --gpu-bg:#EBE3F7;
+    --both-line:#2E8B8B; --both-ink:#1F6363; --both-bg:#DCEEEE;
+    --na-line:#8A93A0; --na-ink:#5B6472; --na-bg:#E9EBEE;
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -18,6 +22,10 @@
       --card:#1B1F26; --card-line:#333A42;
       --tag-kept:#9AA4B0; --tag-added:#5CAE87; --tag-removed:#E08579; --tag-renamed:#D9A54B;
       --tag-kept-bg:#22262D; --tag-added-bg:#173226; --tag-removed-bg:#3A1E1B; --tag-renamed-bg:#3A2F16;
+      --cpu-line:#D9836A; --cpu-ink:#E8A992; --cpu-bg:#3A2620;
+      --gpu-line:#A78BDE; --gpu-ink:#C6B4EC; --gpu-bg:#2C2438;
+      --both-line:#4FB3B3; --both-ink:#8FD6D6; --both-bg:#173030;
+      --na-line:#8A93A0; --na-ink:#AEB6C0; --na-bg:#252A31;
     }
   }
   :root[data-theme="dark"]{
@@ -28,6 +36,10 @@
     --card:#1B1F26; --card-line:#333A42;
     --tag-kept:#9AA4B0; --tag-added:#5CAE87; --tag-removed:#E08579; --tag-renamed:#D9A54B;
     --tag-kept-bg:#22262D; --tag-added-bg:#173226; --tag-removed-bg:#3A1E1B; --tag-renamed-bg:#3A2F16;
+    --cpu-line:#D9836A; --cpu-ink:#E8A992; --cpu-bg:#3A2620;
+    --gpu-line:#A78BDE; --gpu-ink:#C6B4EC; --gpu-bg:#2C2438;
+    --both-line:#4FB3B3; --both-ink:#8FD6D6; --both-bg:#173030;
+    --na-line:#8A93A0; --na-ink:#AEB6C0; --na-bg:#252A31;
   }
   :root[data-theme="light"]{
     --bg:#FAFAF7; --ink:#1B2027; --muted:#5B6472; --line:#C7CDD3;
@@ -37,11 +49,10 @@
     --card:#FFFFFF; --card-line:#DADFE4;
     --tag-kept:#5B6472; --tag-added:#3C8768; --tag-removed:#C0392B; --tag-renamed:#B4791E;
     --tag-kept-bg:#EDEFF1; --tag-added-bg:#E1EFE4; --tag-removed-bg:#F7E4E1; --tag-renamed-bg:#F6ECD3;
-  }
-
-  @font-face{
-    font-family:'Plex';
-    src: local('IBM Plex Sans');
+    --cpu-line:#B5563B; --cpu-ink:#8C4028; --cpu-bg:#F5E4DC;
+    --gpu-line:#7B5CC7; --gpu-ink:#5B3F9E; --gpu-bg:#EBE3F7;
+    --both-line:#2E8B8B; --both-ink:#1F6363; --both-bg:#DCEEEE;
+    --na-line:#8A93A0; --na-ink:#5B6472; --na-bg:#E9EBEE;
   }
 
   *{box-sizing:border-box;}
@@ -59,7 +70,8 @@
     font-size:1.55rem; font-weight:600; margin:0 0 .3rem; text-wrap:balance;
     letter-spacing:-.01em;
   }
-  .sub{color:var(--muted); font-size:.94rem; max-width:62ch; line-height:1.5; margin:0 0 1.6rem;}
+  h2{font-size:1.05rem; font-weight:600; margin:0 0 .7rem;}
+  .sub{color:var(--muted); font-size:.94rem; max-width:66ch; line-height:1.5; margin:0 0 1.6rem;}
   .answer{
     display:flex; gap:1rem; align-items:flex-start; background:var(--card);
     border:1px solid var(--card-line); border-radius:10px; padding:1rem 1.2rem;
@@ -72,7 +84,7 @@
   .answer p{margin:0; font-size:.92rem; line-height:1.55; color:var(--ink);}
   .answer strong{color:var(--ink);}
 
-  figure{margin:0 0 2.2rem;}
+  figure{margin:0 0 1.4rem;}
   .diagram-scroll{overflow-x:auto; border:1px solid var(--card-line); border-radius:12px; background:var(--card); padding:.5rem;}
   svg{display:block; width:100%; height:auto; min-width:960px;}
   figcaption{
@@ -80,11 +92,16 @@
   }
 
   .legend{
-    display:flex; flex-wrap:wrap; gap:.5rem 1.1rem; margin:0 0 2rem;
+    display:flex; flex-wrap:wrap; gap:.5rem 1.1rem; margin:0 0 1.1rem;
     font-family:'IBM Plex Mono',monospace; font-size:.74rem;
   }
   .legend span{display:inline-flex; align-items:center; gap:.4rem; color:var(--muted);}
   .swatch{width:.65rem; height:.65rem; border-radius:2px; flex:0 0 auto;}
+  .legend-block{margin-bottom:1.1rem;}
+  .legend-label{
+    font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .5rem;
+  }
 
   table{width:100%; border-collapse:collapse; font-size:.86rem;}
   caption{
@@ -111,6 +128,9 @@
   .tag-renamed{color:var(--tag-renamed); background:var(--tag-renamed-bg);}
   .tag-added{color:var(--tag-added); background:var(--tag-added-bg);}
   .tag-kept{color:var(--tag-kept); background:var(--tag-kept-bg);}
+  .tag-cpu{color:var(--cpu-ink); background:var(--cpu-bg);}
+  .tag-gpu{color:var(--gpu-ink); background:var(--gpu-bg);}
+  .tag-both{color:var(--both-ink); background:var(--both-bg);}
 
   .table-wrap{overflow-x:auto; margin-bottom:2.4rem;}
 </style>
@@ -122,8 +142,10 @@
     Figure 7.1 from the proposal describes the system's architecture, not the
     hardware it happened to run on. CPU and GPU are two runs of the identical
     pipeline below — the difference is completeness (1 of 5 folds vs. 5 of 5,
-    plus the full ablation study), which belongs in the Experimentation
-    chapter's results, not in a second diagram.
+    plus how much of the ablation study ran), which belongs in the
+    Experimentation chapter's results, not in a second diagram. The stripe on
+    the left edge of each box below shows which compute platform actually
+    executed it.
   </p>
 
   <div class="answer">
@@ -132,15 +154,14 @@
       <strong>Single diagram.</strong> Every box below — the CNN+Transformer
       classifier, the Markov engine, SHAP/Grad-CAM, the dashboard — is the
       same component on both runs. What changed between the CPU and GPU
-      experiments is <em>how far execution got</em> (folds completed,
-      ablation run or not), which is a results-table fact, not an
-      architecture fact.
+      experiments is <em>how far execution got</em>, which is a
+      results-table fact, not an architecture fact.
     </p>
   </div>
 
   <figure>
     <div class="diagram-scroll">
-<svg viewBox="0 0 1440 940" role="img" aria-label="Corrected Neuro-DT framework diagram showing three stages — Data Preparation and Model Training, BDT Core Engine, and Clinical Application and Interaction — with colored tags marking what was removed, renamed, or added relative to the original thesis proposal.">
+<svg viewBox="0 0 1440 980" role="img" aria-label="Corrected Neuro-DT framework diagram showing three stages — Data Preparation and Model Training, BDT Core Engine, and Clinical Application and Interaction. Colored corner tags mark what was removed, renamed, or added relative to the original thesis proposal. A colored stripe on the left edge of each box marks whether it ran on CPU only, GPU only, both, or is a platform-agnostic input.">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
@@ -148,9 +169,9 @@
   </defs>
 
   <!-- lane backgrounds -->
-  <rect x="16" y="70" width="452" height="828" rx="14" fill="var(--amber-fill)" stroke="var(--amber-line)" stroke-width="1.5"/>
-  <rect x="494" y="70" width="452" height="828" rx="14" fill="var(--green-fill)" stroke="var(--green-line)" stroke-width="1.5"/>
-  <rect x="972" y="70" width="452" height="828" rx="14" fill="var(--blue-fill)" stroke="var(--blue-line)" stroke-width="1.5"/>
+  <rect x="16" y="70" width="452" height="868" rx="14" fill="var(--amber-fill)" stroke="var(--amber-line)" stroke-width="1.5"/>
+  <rect x="494" y="70" width="452" height="868" rx="14" fill="var(--green-fill)" stroke="var(--green-line)" stroke-width="1.5"/>
+  <rect x="972" y="70" width="452" height="868" rx="14" fill="var(--blue-fill)" stroke="var(--blue-line)" stroke-width="1.5"/>
 
   <!-- lane headers -->
   <text x="242" y="42" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" letter-spacing="1.5" fill="var(--amber-ink)">1 · DATA PREP &amp; MODEL TRAINING</text>
@@ -159,204 +180,256 @@
 
   <!-- ===================== LANE 1 ===================== -->
   <g font-family="IBM Plex Sans, sans-serif">
-    <!-- Box: dataset -->
-    <rect x="62" y="106" width="360" height="70" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="242" y="130" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Multimodal ADNI Dataset</text>
-    <text x="242" y="150" text-anchor="middle" font-size="11.5" fill="var(--muted)">1,549 T1-weighted MRI scans + ADNIMERGE.csv</text>
-    <text x="242" y="164" text-anchor="middle" font-size="10.5" fill="var(--tag-removed)" text-decoration="line-through">RECCMEDS.csv (medications log)</text>
+    <!-- Box: dataset — CPU only -->
+    <rect x="62" y="106" width="360" height="90" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="62" y="106" width="5" height="90" fill="var(--cpu-line)"/>
+    <text x="248" y="128" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Multimodal ADNI Dataset</text>
+    <text x="248" y="147" text-anchor="middle" font-size="11.5" fill="var(--muted)">1,549 T1-weighted MRI scans + ADNIMERGE.csv</text>
+    <text x="248" y="161" text-anchor="middle" font-size="10.5" fill="var(--tag-removed)" text-decoration="line-through">RECCMEDS.csv (medications log)</text>
+    <rect x="150" y="170" width="196" height="16" rx="8" fill="var(--cpu-bg)"/>
+    <text x="248" y="181.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--cpu-ink)">CPU · ingested once (Azure ML)</text>
 
-    <line x1="242" y1="176" x2="242" y2="204" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="252" y="194" font-size="10.5" fill="var(--muted)">curated longitudinal data</text>
+    <line x1="242" y1="196" x2="242" y2="222" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="252" y="213" font-size="10.5" fill="var(--muted)">curated longitudinal data</text>
 
-    <!-- Box: preprocessing -->
-    <rect x="62" y="208" width="360" height="56" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="242" y="232" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Preprocessing</text>
-    <text x="242" y="250" text-anchor="middle" font-size="11.5" fill="var(--muted)">DICOM → tensor · resample 128³ · normalize · cache</text>
+    <!-- Box: preprocessing — CPU only -->
+    <rect x="62" y="226" width="360" height="72" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="62" y="226" width="5" height="72" fill="var(--cpu-line)"/>
+    <text x="248" y="248" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Preprocessing</text>
+    <text x="248" y="266" text-anchor="middle" font-size="11.5" fill="var(--muted)">DICOM → tensor · resample 128³ · normalize · cache</text>
+    <rect x="150" y="278" width="196" height="16" rx="8" fill="var(--cpu-bg)"/>
+    <text x="248" y="289.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--cpu-ink)">CPU · cached once, reused on GPU</text>
 
-    <line x1="242" y1="264" x2="242" y2="292" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="252" y="282" font-size="10.5" fill="var(--muted)">1,549 cached tensors (.pt)</text>
+    <line x1="242" y1="298" x2="242" y2="324" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="252" y="315" font-size="10.5" fill="var(--muted)">1,549 cached tensors (.pt)</text>
 
-    <!-- Box: training -->
-    <rect x="62" y="296" width="360" height="86" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="242" y="320" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Hybrid Model Training &amp; Validation</text>
-    <text x="242" y="338" text-anchor="middle" font-size="11.5" fill="var(--muted)">3D DenseNet-121 + Transformer encoder</text>
-    <text x="242" y="353" text-anchor="middle" font-size="11.5" fill="var(--muted)">Stratified 5-fold CV · OneCycleLR + AMP</text>
-    <rect x="330" y="298" width="82" height="16" rx="8" fill="var(--tag-renamed-bg)"/>
-    <text x="371" y="309" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--tag-renamed)">REFINED</text>
+    <!-- Box: training — BOTH -->
+    <rect x="62" y="328" width="360" height="112" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="62" y="328" width="5" height="112" fill="var(--both-line)"/>
+    <text x="248" y="350" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Hybrid Model Training &amp; Validation</text>
+    <text x="248" y="368" text-anchor="middle" font-size="11.5" fill="var(--muted)">3D DenseNet-121 + Transformer encoder</text>
+    <text x="248" y="383" text-anchor="middle" font-size="11.5" fill="var(--muted)">Stratified 5-fold CV · OneCycleLR + AMP</text>
+    <rect x="330" y="332" width="82" height="16" rx="8" fill="var(--tag-renamed-bg)"/>
+    <text x="371" y="343" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--tag-renamed)">REFINED</text>
+    <rect x="128" y="396" width="240" height="16" rx="8" fill="var(--both-bg)"/>
+    <text x="248" y="407.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--both-ink)">CPU: 1/5 folds  →  GPU: 5/5 folds</text>
 
-    <!-- Ablation added node, dashed connector -->
-    <line x1="422" y1="339" x2="470" y2="339" stroke="var(--tag-added)" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
-    <rect x="428" y="392" width="120" height="0" fill="none"/>
+    <line x1="242" y1="440" x2="242" y2="466" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="252" y="457" font-size="10.5" fill="var(--muted)">trained &amp; validated BDT models</text>
 
-    <line x1="242" y1="382" x2="242" y2="410" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="252" y="400" font-size="10.5" fill="var(--muted)">trained &amp; validated BDT models</text>
+    <!-- Box: ablation, added — BOTH -->
+    <rect x="62" y="470" width="360" height="76" rx="9" fill="var(--card)" stroke="var(--tag-added)" stroke-width="1.6" stroke-dasharray="5 3"/>
+    <rect x="62" y="470" width="5" height="76" fill="var(--both-line)"/>
+    <text x="248" y="491" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Ablation Study</text>
+    <text x="248" y="507" text-anchor="middle" font-size="11" fill="var(--muted)">7 architecture variants + 4 classical ML baselines</text>
+    <rect x="330" y="472" width="82" height="16" rx="8" fill="var(--tag-added-bg)"/>
+    <text x="371" y="483" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--tag-added)">ADDED</text>
+    <rect x="118" y="518" width="260" height="16" rx="8" fill="var(--both-bg)"/>
+    <text x="248" y="529.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--both-ink)">CPU: 5/11 variants  →  GPU: 11/11</text>
 
-    <!-- Box: ablation, added -->
-    <rect x="62" y="414" width="360" height="56" rx="9" fill="var(--card)" stroke="var(--tag-added)" stroke-width="1.6" stroke-dasharray="5 3"/>
-    <text x="242" y="436" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Ablation Study</text>
-    <text x="242" y="454" text-anchor="middle" font-size="11" fill="var(--muted)">7 architecture variants + 4 classical ML baselines</text>
-    <rect x="330" y="416" width="82" height="16" rx="8" fill="var(--tag-added-bg)"/>
-    <text x="371" y="427" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--tag-added)">ADDED</text>
+    <line x1="242" y1="546" x2="242" y2="572" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
 
-    <line x1="242" y1="470" x2="242" y2="498" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-
-    <!-- Box: model artifacts -->
-    <rect x="62" y="502" width="360" height="64" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="242" y="526" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Trained &amp; Validated BDT Models</text>
-    <text x="242" y="544" text-anchor="middle" font-size="11" fill="var(--muted)">best_model_fold*.pth · markov_matrices.pkl</text>
+    <!-- Box: model artifacts — BOTH -->
+    <rect x="62" y="576" width="360" height="84" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="62" y="576" width="5" height="84" fill="var(--both-line)"/>
+    <text x="248" y="598" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">Trained &amp; Validated BDT Models</text>
+    <text x="248" y="616" text-anchor="middle" font-size="11" fill="var(--muted)">best_model_fold*.pth · markov_matrices.pkl</text>
+    <rect x="118" y="628" width="260" height="16" rx="8" fill="var(--both-bg)"/>
+    <text x="248" y="639.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--both-ink)">2 generations: CPU-era + GPU-era</text>
   </g>
 
   <!-- connector lane1 -> lane2 -->
-  <line x1="422" y1="534" x2="476" y2="534" stroke="var(--muted)" stroke-width="1.4"/>
-  <line x1="476" y1="534" x2="476" y2="600" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <line x1="422" y1="618" x2="476" y2="618" stroke="var(--muted)" stroke-width="1.4"/>
+  <line x1="476" y1="618" x2="476" y2="640" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
 
   <!-- ===================== LANE 2 ===================== -->
   <g font-family="IBM Plex Sans, sans-serif">
-    <!-- New patient input -->
-    <polygon points="600,108 900,108 878,168 622,168" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="750" y="132" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">New Patient Data</text>
-    <text x="750" y="150" text-anchor="middle" font-size="11" fill="var(--muted)">Scan + AGE / PTEDUCAT / MMSE / APOE4</text>
+    <!-- New patient input — N/A -->
+    <polygon points="600,108 900,108 878,172 622,172" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="600" y="108" width="5" height="64" fill="var(--na-line)"/>
+    <text x="754" y="132" text-anchor="middle" font-size="14.5" font-weight="600" fill="var(--ink)">New Patient Data</text>
+    <text x="754" y="150" text-anchor="middle" font-size="11" fill="var(--muted)">Scan + AGE / PTEDUCAT / MMSE / APOE4</text>
+    <text x="754" y="165" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--na-ink)">INPUT · platform-agnostic</text>
 
-    <line x1="750" y1="168" x2="750" y2="222" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="760" y="200" font-size="10.5" fill="var(--muted)">patient-specific input</text>
+    <line x1="754" y1="172" x2="754" y2="212" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="764" y="196" font-size="10.5" fill="var(--muted)">patient-specific input</text>
 
-    <line x1="476" y1="600" x2="670" y2="600" stroke="var(--muted)" stroke-width="1.4"/>
+    <line x1="476" y1="640" x2="670" y2="640" stroke="var(--muted)" stroke-width="1.4"/>
 
-    <!-- BDT instance circle -->
-    <circle cx="750" cy="280" r="66" fill="var(--card)" stroke="var(--green-line)" stroke-width="2"/>
-    <text x="750" y="273" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Brain Digital Twin</text>
-    <text x="750" y="290" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Instance</text>
+    <!-- BDT instance circle — BOTH -->
+    <circle cx="754" cy="290" r="70" fill="var(--card)" stroke="var(--both-line)" stroke-width="2.5"/>
+    <text x="754" y="280" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Brain Digital Twin</text>
+    <text x="754" y="297" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Instance</text>
+    <text x="754" y="314" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="var(--both-ink)">CPU model → GPU model</text>
 
-    <line x1="670" y1="600" x2="670" y2="330" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="558" y="470" font-size="10.5" fill="var(--muted)" transform="rotate(-90 558 470)">trained model + Markov matrices</text>
+    <line x1="670" y1="640" x2="670" y2="340" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="558" y="500" font-size="10.5" fill="var(--muted)" transform="rotate(-90 558 500)">trained model + Markov matrices</text>
 
     <!-- branch to simulation -->
-    <line x1="750" y1="346" x2="750" y2="384" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="760" y="370" font-size="10.5" fill="var(--muted)">prediction + simulation</text>
+    <line x1="754" y1="360" x2="754" y2="396" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="764" y="382" font-size="10.5" fill="var(--muted)">prediction + simulation</text>
 
-    <rect x="592" y="388" width="316" height="72" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="750" y="410" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Personalized Prediction &amp; Simulation</text>
-    <text x="750" y="426" text-anchor="middle" font-size="10.5" fill="var(--muted)">Monte Carlo (n=1,000) over Markov transition matrix</text>
-    <text x="750" y="440" text-anchor="middle" font-size="10.5" fill="var(--muted)">What-if: APOE4 · age · education · drug effect</text>
-    <text x="750" y="454" text-anchor="middle" font-size="9.5" fill="var(--tag-removed)">medication history not used — fixed effect sizes</text>
+    <rect x="592" y="400" width="324" height="90" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="592" y="400" width="5" height="90" fill="var(--both-line)"/>
+    <text x="760" y="420" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Personalized Prediction &amp; Simulation</text>
+    <text x="760" y="436" text-anchor="middle" font-size="10.5" fill="var(--muted)">Monte Carlo (n=1,000) over Markov transition matrix</text>
+    <text x="760" y="450" text-anchor="middle" font-size="10.5" fill="var(--muted)">What-if: APOE4 · age · education · drug effect</text>
+    <text x="760" y="464" text-anchor="middle" font-size="9.5" fill="var(--tag-removed)">medication history not used — fixed effect sizes</text>
+    <rect x="660" y="472" width="200" height="14" rx="7" fill="var(--both-bg)"/>
+    <text x="760" y="482.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="var(--both-ink)">CPU + GPU</text>
 
-    <line x1="750" y1="460" x2="750" y2="488" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <line x1="754" y1="490" x2="754" y2="516" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
 
-    <rect x="632" y="492" width="236" height="52" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="750" y="514" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Synthesized Digital Twin Report</text>
-    <text x="750" y="530" text-anchor="middle" font-size="10" fill="var(--muted)">5-year risk trajectory + scenario table</text>
+    <rect x="632" y="520" width="244" height="60" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="632" y="520" width="5" height="60" fill="var(--both-line)"/>
+    <text x="758" y="540" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Synthesized Digital Twin Report</text>
+    <text x="758" y="555" text-anchor="middle" font-size="10" fill="var(--muted)">5-year risk trajectory + scenario table</text>
+    <text x="758" y="571" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="var(--both-ink)">CPU + GPU</text>
 
     <!-- branch to explainability -->
-    <path d="M708,320 C650,360 630,420 660,470" fill="none" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <text x="600" y="440" font-size="10.5" fill="var(--muted)">model interpretability data</text>
+    <path d="M700,350 C640,390 620,440 655,478" fill="none" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="590" y="452" font-size="10.5" fill="var(--muted)">model interpretability data</text>
 
-    <rect x="592" y="576" width="316" height="72" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="750" y="598" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Explainability Module</text>
-    <text x="750" y="614" text-anchor="middle" font-size="10.5" fill="var(--muted)">SHAP (tabular) · Grad-CAM (imaging, denseblock4)</text>
-    <text x="750" y="630" text-anchor="middle" font-size="10.5" text-decoration="line-through" fill="var(--tag-removed)">Attention Maps</text>
-    <rect x="808" y="580" width="88" height="16" rx="8" fill="var(--tag-removed-bg)"/>
-    <text x="852" y="591" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--tag-removed)">NOT BUILT</text>
+    <rect x="592" y="608" width="324" height="94" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="592" y="608" width="5" height="94" fill="var(--both-line)"/>
+    <text x="760" y="628" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Explainability Module</text>
+    <text x="760" y="644" text-anchor="middle" font-size="10.5" fill="var(--muted)">SHAP (tabular) · Grad-CAM (imaging, denseblock4)</text>
+    <text x="760" y="659" text-anchor="middle" font-size="10.5" text-decoration="line-through" fill="var(--tag-removed)">Attention Maps</text>
+    <rect x="820" y="612" width="88" height="16" rx="8" fill="var(--tag-removed-bg)"/>
+    <text x="864" y="623" text-anchor="middle" font-size="9.5" font-weight="600" fill="var(--tag-removed)">NOT BUILT</text>
+    <rect x="640" y="672" width="240" height="16" rx="8" fill="var(--both-bg)"/>
+    <text x="760" y="683.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--both-ink)">CPU: 1 patient  →  GPU: multi-patient</text>
 
-    <line x1="750" y1="648" x2="750" y2="676" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <line x1="754" y1="702" x2="754" y2="728" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
 
-    <rect x="632" y="680" width="236" height="52" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="750" y="702" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Explanation Visualizations</text>
-    <text x="750" y="718" text-anchor="middle" font-size="10" fill="var(--muted)">SHAP bar chart + Grad-CAM overlay</text>
+    <rect x="632" y="732" width="244" height="60" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="632" y="732" width="5" height="60" fill="var(--both-line)"/>
+    <text x="758" y="752" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Explanation Visualizations</text>
+    <text x="758" y="767" text-anchor="middle" font-size="10" fill="var(--muted)">SHAP bar chart + Grad-CAM overlay</text>
+    <text x="758" y="783" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="var(--both-ink)">CPU + GPU</text>
   </g>
 
   <!-- connectors lane2 -> lane3 -->
-  <line x1="868" y1="518" x2="1000" y2="518" stroke="var(--muted)" stroke-width="1.4"/>
-  <line x1="868" y1="706" x2="1000" y2="706" stroke="var(--muted)" stroke-width="1.4"/>
-  <line x1="1000" y1="518" x2="1000" y2="612" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-  <line x1="1000" y1="706" x2="1000" y2="612" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <line x1="876" y1="550" x2="1000" y2="550" stroke="var(--muted)" stroke-width="1.4"/>
+  <line x1="876" y1="762" x2="1000" y2="762" stroke="var(--muted)" stroke-width="1.4"/>
+  <line x1="1000" y1="550" x2="1000" y2="648" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <line x1="1000" y1="762" x2="1000" y2="648" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
 
   <!-- ===================== LANE 3 ===================== -->
   <g font-family="IBM Plex Sans, sans-serif">
-    <rect x="1040" y="580" width="316" height="56" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="1198" y="602" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Report Data for UI &amp; Visualization</text>
-    <text x="1198" y="618" text-anchor="middle" font-size="10.5" fill="var(--muted)">merged report + explanation payload</text>
+    <rect x="1040" y="612" width="324" height="72" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="1040" y="612" width="5" height="72" fill="var(--both-line)"/>
+    <text x="1206" y="632" text-anchor="middle" font-size="13.5" font-weight="600" fill="var(--ink)">Report Data for UI &amp; Visualization</text>
+    <text x="1206" y="648" text-anchor="middle" font-size="10.5" fill="var(--muted)">merged report + explanation payload</text>
+    <rect x="1106" y="660" width="200" height="15" rx="7.5" fill="var(--both-bg)"/>
+    <text x="1206" y="670.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="var(--both-ink)">CPU + GPU</text>
 
-    <line x1="1120" y1="636" x2="1120" y2="672" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
-    <line x1="1276" y1="636" x2="1276" y2="672" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <line x1="1128" y1="684" x2="1128" y2="716" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <line x1="1284" y1="684" x2="1284" y2="716" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#arrow)"/>
 
-    <rect x="1000" y="676" width="240" height="86" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="1120" y="698" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Grad-CAM Multi-Planar</text>
-    <text x="1120" y="713" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Visualization</text>
-    <text x="1120" y="730" text-anchor="middle" font-size="10" fill="var(--muted)">axial / sagittal / coronal</text>
-    <text x="1120" y="744" text-anchor="middle" font-size="10" fill="var(--muted)">slice overlays</text>
-    <rect x="1008" y="680" width="82" height="15" rx="7.5" fill="var(--tag-renamed-bg)"/>
-    <text x="1049" y="690.5" text-anchor="middle" font-size="9" font-weight="600" fill="var(--tag-renamed)">RENAMED</text>
+    <rect x="1000" y="720" width="248" height="118" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="1000" y="720" width="5" height="118" fill="var(--both-line)"/>
+    <text x="1128" y="742" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Grad-CAM Multi-Planar</text>
+    <text x="1128" y="757" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Visualization</text>
+    <text x="1128" y="774" text-anchor="middle" font-size="10" fill="var(--muted)">axial / sagittal / coronal</text>
+    <text x="1128" y="788" text-anchor="middle" font-size="10" fill="var(--muted)">slice overlays</text>
+    <rect x="1012" y="724" width="82" height="15" rx="7.5" fill="var(--tag-renamed-bg)"/>
+    <text x="1053" y="734.5" text-anchor="middle" font-size="9" font-weight="600" fill="var(--tag-renamed)">RENAMED</text>
+    <rect x="1032" y="800" width="184" height="16" rx="8" fill="var(--both-bg)"/>
+    <text x="1124" y="811.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--both-ink)">CPU + GPU model eras</text>
 
-    <rect x="1156" y="676" width="240" height="86" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
-    <text x="1276" y="698" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Interactive Clinical</text>
-    <text x="1276" y="713" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Dashboard</text>
-    <text x="1276" y="730" text-anchor="middle" font-size="10" fill="var(--muted)">Streamlit · what-if UI</text>
-    <text x="1276" y="744" text-anchor="middle" font-size="10" fill="var(--muted)">deployed: Azure App Service</text>
-    <rect x="1310" y="680" width="76" height="15" rx="7.5" fill="var(--tag-kept-bg)"/>
-    <text x="1348" y="690.5" text-anchor="middle" font-size="9" font-weight="600" fill="var(--tag-kept)">BUILT</text>
+    <rect x="1164" y="720" width="248" height="118" rx="9" fill="var(--card)" stroke="var(--card-line)"/>
+    <rect x="1164" y="720" width="5" height="118" fill="var(--both-line)"/>
+    <text x="1288" y="742" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Interactive Clinical</text>
+    <text x="1288" y="757" text-anchor="middle" font-size="12.5" font-weight="600" fill="var(--ink)">Dashboard</text>
+    <text x="1288" y="774" text-anchor="middle" font-size="10" fill="var(--muted)">Streamlit · what-if UI</text>
+    <text x="1288" y="788" text-anchor="middle" font-size="10" fill="var(--muted)">deployed: Azure App Service</text>
+    <rect x="1324" y="724" width="76" height="15" rx="7.5" fill="var(--tag-kept-bg)"/>
+    <text x="1362" y="734.5" text-anchor="middle" font-size="9" font-weight="600" fill="var(--tag-kept)">BUILT</text>
+    <rect x="1200" y="800" width="176" height="16" rx="8" fill="var(--both-bg)"/>
+    <text x="1288" y="811.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="var(--both-ink)">CPU model → GPU model</text>
   </g>
 
-  <text x="242" y="918" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--muted)">runs identically on CPU (partial) and GPU (complete) compute</text>
+  <text x="720" y="920" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--muted)">Every box downstream of data preparation ran with whichever model was current -- first CPU-trained, later GPU-trained.</text>
+  <text x="720" y="938" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--muted)">Only ingestion and preprocessing (top of Lane 1) ran exactly once, on CPU -- there is no GPU-exclusive box in this diagram.</text>
 </svg>
     </div>
     <figcaption>
       Figure — corrected Neuro-DT framework. Same three-stage architecture as
-      proposal Figure 7.1; colored tags mark what changed against
-      implementation. Solid boxes with no tag are unchanged. This single
-      diagram represents both the CPU and GPU experiments — they differ in
-      how much of it completed, not in what it contains.
+      proposal Figure 7.1. Corner tags mark what changed against
+      implementation (removed / renamed / added / kept); the left-edge
+      stripe on every box marks which compute platform actually ran it.
     </figcaption>
   </figure>
 
-  <div class="legend">
-    <span><span class="swatch" style="background:var(--tag-removed)"></span>REMOVED — proposed, not implemented</span>
-    <span><span class="swatch" style="background:var(--tag-renamed)"></span>RENAMED / REFINED — label made precise</span>
-    <span><span class="swatch" style="background:var(--tag-added)"></span>ADDED — beyond original proposal</span>
-    <span><span class="swatch" style="background:var(--tag-kept)"></span>KEPT — built as proposed</span>
+  <div class="legend-block">
+    <p class="legend-label">Proposal vs. implementation</p>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--tag-removed)"></span>REMOVED — proposed, not implemented</span>
+      <span><span class="swatch" style="background:var(--tag-renamed)"></span>RENAMED / REFINED — label made precise</span>
+      <span><span class="swatch" style="background:var(--tag-added)"></span>ADDED — beyond original proposal</span>
+      <span><span class="swatch" style="background:var(--tag-kept)"></span>KEPT — built as proposed</span>
+    </div>
+  </div>
+
+  <div class="legend-block">
+    <p class="legend-label">Compute platform (left-edge stripe)</p>
+    <div class="legend">
+      <span><span class="swatch" style="background:var(--cpu-line)"></span>CPU only — ran once, never redone on GPU</span>
+      <span><span class="swatch" style="background:var(--gpu-line)"></span>GPU only — no box in this diagram is GPU-exclusive; see caption</span>
+      <span><span class="swatch" style="background:var(--both-line)"></span>BOTH — executed in both experiments, degree of completion noted on the box</span>
+      <span><span class="swatch" style="background:var(--na-line)"></span>INPUT — platform-agnostic data, not a computation</span>
+    </div>
   </div>
 
   <div class="table-wrap">
     <table>
       <caption>Every change, by component</caption>
       <thead>
-        <tr><th>Original proposal (Fig. 7.1)</th><th>Change</th><th>Corrected label</th><th>Why</th></tr>
+        <tr><th>Original proposal (Fig. 7.1)</th><th>Change</th><th>Corrected label</th><th>Ran on</th><th>Why</th></tr>
       </thead>
       <tbody>
         <tr>
           <td>Dataset: MRIs, ADNIMERGE, <strong>RECCMEDS</strong></td>
           <td><span class="tag tag-removed">Removed</span></td>
           <td>MRIs + ADNIMERGE.csv only</td>
+          <td><span class="tag tag-cpu">CPU only</span></td>
           <td>Medication log was never joined; drug effects use fixed hypothetical percentages (Lecanemab 30%, Donanemab 35%), not per-patient history.</td>
         </tr>
         <tr>
           <td>Hybrid Model Training (CNN, Transformer, K-Fold CV, <strong>Hidden Markov Chains</strong>)</td>
           <td><span class="tag tag-renamed">Renamed</span></td>
           <td>3D DenseNet-121 + Transformer · empirical Markov chain</td>
+          <td><span class="tag tag-both">Both</span> — CPU 1/5 folds, GPU 5/5</td>
           <td>The progression model is a directly-estimated transition matrix from observed visit sequences, not a fitted Hidden Markov Model with latent states.</td>
         </tr>
         <tr>
           <td>— (not in original diagram)</td>
           <td><span class="tag tag-added">Added</span></td>
           <td>Ablation Study node</td>
-          <td>7 architecture variants + 4 classical baselines — infeasible on CPU, completed on GPU. A real, substantial addition worth its own node.</td>
+          <td><span class="tag tag-both">Both</span> — CPU 5/11 variants, GPU 11/11</td>
+          <td>A0, A1, and the 4 classical baselines completed on CPU; the 6 variants needing fresh 3D-CNN training completed on GPU as a full, independent re-run.</td>
         </tr>
         <tr>
           <td>Explainability Module (SHAP, Grad-CAM, <strong>Attention Maps</strong>)</td>
           <td><span class="tag tag-removed">Removed</span></td>
           <td>SHAP + Grad-CAM only</td>
+          <td><span class="tag tag-both">Both</span> — CPU 1 patient, GPU multi-patient</td>
           <td>Transformer attention-weight visualization was never implemented or evaluated.</td>
         </tr>
         <tr>
           <td><strong>3D Brain Visualization</strong> (Atrophy/Activation Maps)</td>
           <td><span class="tag tag-renamed">Renamed</span></td>
           <td>Grad-CAM Multi-Planar Visualization</td>
+          <td><span class="tag tag-both">Both</span></td>
           <td>What's actually rendered is axial/sagittal/coronal 2D slice overlays, not an interactive volumetric 3D model.</td>
         </tr>
         <tr>
           <td>Interactive Clinical Dashboard</td>
           <td><span class="tag tag-kept">Kept</span></td>
           <td>— unchanged —</td>
-          <td>Built as proposed: Streamlit, what-if toggles, deployed to Azure App Service.</td>
+          <td><span class="tag tag-both">Both</span> — CPU model (v1–v7), GPU model (v17–v21)</td>
+          <td>Built as proposed: Streamlit, what-if toggles, deployed to Azure App Service; the deployed checkpoint was later swapped from CPU-trained to GPU-trained.</td>
         </tr>
       </tbody>
     </table>
