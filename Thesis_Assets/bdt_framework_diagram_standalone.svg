@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" style="background:#FAFAF7" viewBox="0 0 1440 980" role="img" aria-label="Corrected Neuro-DT framework diagram showing three stages — Data Preparation and Model Training, BDT Core Engine, and Clinical Application and Interaction. Colored corner tags mark what was removed, renamed, or added relative to the original thesis proposal. A colored stripe on the left edge of each box marks whether it ran on CPU only, GPU only, both, or is a platform-agnostic input.">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#5B6472"/>
+    </marker>
+  </defs>
+
+  <!-- lane backgrounds -->
+  <rect x="16" y="70" width="452" height="868" rx="14" fill="#F6ECD3" stroke="#C08A2E" stroke-width="1.5"/>
+  <rect x="494" y="70" width="452" height="868" rx="14" fill="#E1EFE4" stroke="#3C8768" stroke-width="1.5"/>
+  <rect x="972" y="70" width="452" height="868" rx="14" fill="#E1EAF6" stroke="#3068B0" stroke-width="1.5"/>
+
+  <!-- lane headers -->
+  <text x="242" y="42" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" letter-spacing="1.5" fill="#7A5A16">1 · DATA PREP &amp; MODEL TRAINING</text>
+  <text x="720" y="42" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" letter-spacing="1.5" fill="#2A6249">2 · BDT CORE ENGINE</text>
+  <text x="1198" y="42" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="13" font-weight="700" letter-spacing="1.5" fill="#274E82">3 · CLINICAL APPLICATION</text>
+
+  <!-- ===================== LANE 1 ===================== -->
+  <g font-family="IBM Plex Sans, sans-serif">
+    <!-- Box: dataset — CPU only -->
+    <rect x="62" y="106" width="360" height="90" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="62" y="106" width="5" height="90" fill="#B5563B"/>
+    <text x="248" y="128" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1B2027">Multimodal ADNI Dataset</text>
+    <text x="248" y="147" text-anchor="middle" font-size="11.5" fill="#5B6472">1,549 T1-weighted MRI scans + ADNIMERGE.csv</text>
+    <text x="248" y="161" text-anchor="middle" font-size="10.5" fill="#C0392B" text-decoration="line-through">RECCMEDS.csv (medications log)</text>
+    <rect x="150" y="170" width="196" height="16" rx="8" fill="#F5E4DC"/>
+    <text x="248" y="181.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#8C4028">CPU · ingested once (Azure ML)</text>
+
+    <line x1="242" y1="196" x2="242" y2="222" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="252" y="213" font-size="10.5" fill="#5B6472">curated longitudinal data</text>
+
+    <!-- Box: preprocessing — CPU only -->
+    <rect x="62" y="226" width="360" height="72" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="62" y="226" width="5" height="72" fill="#B5563B"/>
+    <text x="248" y="248" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1B2027">Preprocessing</text>
+    <text x="248" y="266" text-anchor="middle" font-size="11.5" fill="#5B6472">DICOM → tensor · resample 128³ · normalize · cache</text>
+    <rect x="150" y="278" width="196" height="16" rx="8" fill="#F5E4DC"/>
+    <text x="248" y="289.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#8C4028">CPU · cached once, reused on GPU</text>
+
+    <line x1="242" y1="298" x2="242" y2="324" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="252" y="315" font-size="10.5" fill="#5B6472">1,549 cached tensors (.pt)</text>
+
+    <!-- Box: training — BOTH -->
+    <rect x="62" y="328" width="360" height="112" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="62" y="328" width="5" height="112" fill="#2E8B8B"/>
+    <text x="248" y="350" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1B2027">Hybrid Model Training &amp; Validation</text>
+    <text x="248" y="368" text-anchor="middle" font-size="11.5" fill="#5B6472">3D DenseNet-121 + Transformer encoder</text>
+    <text x="248" y="383" text-anchor="middle" font-size="11.5" fill="#5B6472">Stratified 5-fold CV · OneCycleLR + AMP</text>
+    <rect x="330" y="332" width="82" height="16" rx="8" fill="#F6ECD3"/>
+    <text x="371" y="343" text-anchor="middle" font-size="9.5" font-weight="600" fill="#B4791E">REFINED</text>
+    <rect x="128" y="396" width="240" height="16" rx="8" fill="#DCEEEE"/>
+    <text x="248" y="407.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#1F6363">CPU: 1/5 folds  →  GPU: 5/5 folds</text>
+
+    <line x1="242" y1="440" x2="242" y2="466" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="252" y="457" font-size="10.5" fill="#5B6472">trained &amp; validated BDT models</text>
+
+    <!-- Box: ablation, added — BOTH -->
+    <rect x="62" y="470" width="360" height="76" rx="9" fill="#FFFFFF" stroke="#3C8768" stroke-width="1.6" stroke-dasharray="5 3"/>
+    <rect x="62" y="470" width="5" height="76" fill="#2E8B8B"/>
+    <text x="248" y="491" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1B2027">Ablation Study</text>
+    <text x="248" y="507" text-anchor="middle" font-size="11" fill="#5B6472">7 architecture variants + 4 classical ML baselines</text>
+    <rect x="330" y="472" width="82" height="16" rx="8" fill="#E1EFE4"/>
+    <text x="371" y="483" text-anchor="middle" font-size="9.5" font-weight="600" fill="#3C8768">ADDED</text>
+    <rect x="118" y="518" width="260" height="16" rx="8" fill="#DCEEEE"/>
+    <text x="248" y="529.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#1F6363">CPU: 5/11 variants  →  GPU: 11/11</text>
+
+    <line x1="242" y1="546" x2="242" y2="572" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+    <!-- Box: model artifacts — BOTH -->
+    <rect x="62" y="576" width="360" height="84" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="62" y="576" width="5" height="84" fill="#2E8B8B"/>
+    <text x="248" y="598" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1B2027">Trained &amp; Validated BDT Models</text>
+    <text x="248" y="616" text-anchor="middle" font-size="11" fill="#5B6472">best_model_fold*.pth · markov_matrices.pkl</text>
+    <rect x="118" y="628" width="260" height="16" rx="8" fill="#DCEEEE"/>
+    <text x="248" y="639.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#1F6363">2 generations: CPU-era + GPU-era</text>
+  </g>
+
+  <!-- connector lane1 -> lane2 -->
+  <line x1="422" y1="618" x2="476" y2="618" stroke="#5B6472" stroke-width="1.4"/>
+  <line x1="476" y1="618" x2="476" y2="640" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+  <!-- ===================== LANE 2 ===================== -->
+  <g font-family="IBM Plex Sans, sans-serif">
+    <!-- New patient input — N/A -->
+    <polygon points="600,108 900,108 878,172 622,172" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="600" y="108" width="5" height="64" fill="#8A93A0"/>
+    <text x="754" y="132" text-anchor="middle" font-size="14.5" font-weight="600" fill="#1B2027">New Patient Data</text>
+    <text x="754" y="150" text-anchor="middle" font-size="11" fill="#5B6472">Scan + AGE / PTEDUCAT / MMSE / APOE4</text>
+    <text x="754" y="165" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#5B6472">INPUT · platform-agnostic</text>
+
+    <line x1="754" y1="172" x2="754" y2="212" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="764" y="196" font-size="10.5" fill="#5B6472">patient-specific input</text>
+
+    <line x1="476" y1="640" x2="670" y2="640" stroke="#5B6472" stroke-width="1.4"/>
+
+    <!-- BDT instance circle — BOTH -->
+    <circle cx="754" cy="290" r="70" fill="#FFFFFF" stroke="#2E8B8B" stroke-width="2.5"/>
+    <text x="754" y="280" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1B2027">Brain Digital Twin</text>
+    <text x="754" y="297" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1B2027">Instance</text>
+    <text x="754" y="314" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="#1F6363">CPU model → GPU model</text>
+
+    <line x1="670" y1="640" x2="670" y2="340" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="558" y="500" font-size="10.5" fill="#5B6472" transform="rotate(-90 558 500)">trained model + Markov matrices</text>
+
+    <!-- branch to simulation -->
+    <line x1="754" y1="360" x2="754" y2="396" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="764" y="382" font-size="10.5" fill="#5B6472">prediction + simulation</text>
+
+    <rect x="592" y="400" width="324" height="90" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="592" y="400" width="5" height="90" fill="#2E8B8B"/>
+    <text x="760" y="420" text-anchor="middle" font-size="13" font-weight="600" fill="#1B2027">Personalized Prediction &amp; Simulation</text>
+    <text x="760" y="436" text-anchor="middle" font-size="10.5" fill="#5B6472">Monte Carlo (n=1,000) over Markov transition matrix</text>
+    <text x="760" y="450" text-anchor="middle" font-size="10.5" fill="#5B6472">What-if: APOE4 · age · education · drug effect</text>
+    <text x="760" y="464" text-anchor="middle" font-size="9.5" fill="#C0392B">medication history not used — fixed effect sizes</text>
+    <rect x="660" y="472" width="200" height="14" rx="7" fill="#DCEEEE"/>
+    <text x="760" y="482.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="#1F6363">CPU + GPU</text>
+
+    <line x1="754" y1="490" x2="754" y2="516" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+    <rect x="632" y="520" width="244" height="60" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="632" y="520" width="5" height="60" fill="#2E8B8B"/>
+    <text x="758" y="540" text-anchor="middle" font-size="13" font-weight="600" fill="#1B2027">Synthesized Digital Twin Report</text>
+    <text x="758" y="555" text-anchor="middle" font-size="10" fill="#5B6472">5-year risk trajectory + scenario table</text>
+    <text x="758" y="571" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="#1F6363">CPU + GPU</text>
+
+    <!-- branch to explainability -->
+    <path d="M700,350 C580,378 560,540 620,608" fill="none" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <text x="460" y="530" font-size="10.5" fill="#5B6472">model interpretability data</text>
+
+    <rect x="592" y="608" width="324" height="108" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="592" y="608" width="5" height="108" fill="#2E8B8B"/>
+    <rect x="820" y="612" width="88" height="16" rx="8" fill="#F7E4E1"/>
+    <text x="864" y="623" text-anchor="middle" font-size="9.5" font-weight="600" fill="#C0392B">NOT BUILT</text>
+    <text x="760" y="646" text-anchor="middle" font-size="13" font-weight="600" fill="#1B2027">Explainability Module</text>
+    <text x="760" y="662" text-anchor="middle" font-size="10.5" fill="#5B6472">SHAP (tabular) · Grad-CAM (imaging, denseblock4)</text>
+    <text x="760" y="677" text-anchor="middle" font-size="10.5" text-decoration="line-through" fill="#C0392B">Attention Maps</text>
+    <rect x="640" y="690" width="240" height="16" rx="8" fill="#DCEEEE"/>
+    <text x="760" y="701.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#1F6363">CPU: 1 patient  →  GPU: multi-patient</text>
+
+    <line x1="754" y1="716" x2="754" y2="728" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+    <rect x="632" y="732" width="244" height="60" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="632" y="732" width="5" height="60" fill="#2E8B8B"/>
+    <text x="758" y="752" text-anchor="middle" font-size="13" font-weight="600" fill="#1B2027">Explanation Visualizations</text>
+    <text x="758" y="767" text-anchor="middle" font-size="10" fill="#5B6472">SHAP bar chart + Grad-CAM overlay</text>
+    <text x="758" y="783" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="#1F6363">CPU + GPU</text>
+  </g>
+
+  <!-- connectors lane2 -> lane3 -->
+  <line x1="876" y1="550" x2="1000" y2="550" stroke="#5B6472" stroke-width="1.4"/>
+  <line x1="876" y1="762" x2="1000" y2="762" stroke="#5B6472" stroke-width="1.4"/>
+  <line x1="1000" y1="550" x2="1000" y2="648" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <line x1="1000" y1="762" x2="1000" y2="648" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+  <!-- ===================== LANE 3 ===================== -->
+  <g font-family="IBM Plex Sans, sans-serif">
+    <rect x="1040" y="612" width="324" height="72" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="1040" y="612" width="5" height="72" fill="#2E8B8B"/>
+    <text x="1206" y="632" text-anchor="middle" font-size="13.5" font-weight="600" fill="#1B2027">Report Data for UI &amp; Visualization</text>
+    <text x="1206" y="648" text-anchor="middle" font-size="10.5" fill="#5B6472">merged report + explanation payload</text>
+    <rect x="1106" y="660" width="200" height="15" rx="7.5" fill="#DCEEEE"/>
+    <text x="1206" y="670.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="8.5" font-weight="600" fill="#1F6363">CPU + GPU</text>
+
+    <line x1="1095" y1="684" x2="1095" y2="716" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+    <line x1="1301" y1="684" x2="1301" y2="716" stroke="#5B6472" stroke-width="1.4" marker-end="url(#arrow)"/>
+
+    <rect x="1000" y="720" width="190" height="132" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="1000" y="720" width="5" height="132" fill="#2E8B8B"/>
+    <rect x="1012" y="724" width="82" height="15" rx="7.5" fill="#F6ECD3"/>
+    <text x="1053" y="734.5" text-anchor="middle" font-size="9" font-weight="600" fill="#B4791E">RENAMED</text>
+    <text x="1095" y="760" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1B2027">Grad-CAM Multi-Planar</text>
+    <text x="1095" y="775" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1B2027">Visualization</text>
+    <text x="1095" y="792" text-anchor="middle" font-size="10" fill="#5B6472">axial / sagittal / coronal</text>
+    <text x="1095" y="806" text-anchor="middle" font-size="10" fill="#5B6472">slice overlays</text>
+    <rect x="1012" y="814" width="166" height="16" rx="8" fill="#DCEEEE"/>
+    <text x="1095" y="825.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#1F6363">CPU + GPU model eras</text>
+
+    <rect x="1206" y="720" width="190" height="132" rx="9" fill="#FFFFFF" stroke="#DADFE4"/>
+    <rect x="1206" y="720" width="5" height="132" fill="#2E8B8B"/>
+    <rect x="1310" y="724" width="76" height="15" rx="7.5" fill="#EDEFF1"/>
+    <text x="1348" y="734.5" text-anchor="middle" font-size="9" font-weight="600" fill="#5B6472">BUILT</text>
+    <text x="1301" y="760" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1B2027">Interactive Clinical</text>
+    <text x="1301" y="775" text-anchor="middle" font-size="12.5" font-weight="600" fill="#1B2027">Dashboard</text>
+    <text x="1301" y="792" text-anchor="middle" font-size="10" fill="#5B6472">Streamlit · what-if UI</text>
+    <text x="1301" y="806" text-anchor="middle" font-size="10" fill="#5B6472">deployed: Azure App Service</text>
+    <rect x="1218" y="814" width="166" height="16" rx="8" fill="#DCEEEE"/>
+    <text x="1301" y="825.5" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="9" font-weight="600" fill="#1F6363">CPU model → GPU model</text>
+  </g>
+
+  <text x="720" y="920" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6472">Every box downstream of data preparation ran with whichever model was current -- first CPU-trained, later GPU-trained.</text>
+  <text x="720" y="938" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="#5B6472">Only ingestion and preprocessing (top of Lane 1) ran exactly once, on CPU -- there is no GPU-exclusive box in this diagram.</text>
+</svg>
