@@ -1,0 +1,66 @@
+@startuml
+title Neuro-DT Framework -- As-Built vs. Proposed
+
+skinparam backgroundColor #FAFAF7
+skinparam ArrowColor #5B6472
+skinparam ArrowFontColor #5B6472
+skinparam state {
+  BorderColor #DADFE4
+  FontColor #1B2027
+  ArrowFontSize 11
+}
+skinparam titleFontSize 16
+skinparam titleFontColor #1B2027
+
+state "1 . DATA PREP & MODEL TRAINING" as Lane1 #FFF8E8 {
+  state "Multimodal ADNI Dataset\n1,549 T1-weighted MRIs + ADNIMERGE.csv\n(REMOVED) RECCMEDS.csv medications log\nCPU - ingested once (Azure ML)" as Dataset #F5E4DC
+  state "Preprocessing\nDICOM -> tensor - resample 128^3 - normalize - cache\nCPU - cached once, reused on GPU" as Preprocess #F5E4DC
+  state "Hybrid Model Training & Validation (REFINED)\n3D DenseNet-121 + Transformer encoder\nStratified 5-fold CV - OneCycleLR + AMP\nCPU: 1/5 folds -> GPU: 5/5 folds" as Training #DCEEEE
+  state "Ablation Study (ADDED)\n7 architecture variants + 4 classical ML baselines\nCPU: 5/11 variants -> GPU: 11/11" as Ablation #DCEEEE
+  state "Trained & Validated BDT Models\nbest_model_fold*.pth - markov_matrices.pkl\n2 generations: CPU-era + GPU-era" as TrainedModels #DCEEEE
+
+  Dataset --> Preprocess : curated longitudinal data
+  Preprocess --> Training : 1,549 cached tensors (.pt)
+  Training --> Ablation : trained & validated BDT models
+  Ablation --> TrainedModels
+}
+
+state "2 . BDT CORE ENGINE" as Lane2 #E8F3EA {
+  state "New Patient Data\nScan + AGE / PTEDUCAT / MMSE / APOE4\nINPUT - platform-agnostic" as PatientData #E9EBEE
+  state "Brain Digital Twin Instance\nCPU model -> GPU model" as BDTInstance #DCEEEE
+  state "Personalized Prediction & Simulation\nMonte Carlo (n=1,000) over Markov transition matrix\nWhat-if: APOE4 - age - education - drug effect\n(medication history not used -- fixed effect sizes)\nCPU + GPU" as Prediction #DCEEEE
+  state "Synthesized Digital Twin Report\n5-year risk trajectory + scenario table\nCPU + GPU" as DTReport #DCEEEE
+  state "Explainability Module (NOT BUILT: Attention Maps)\nSHAP (tabular) - Grad-CAM (imaging, denseblock4)\nAttention Maps -- removed\nCPU: 1 patient -> GPU: multi-patient" as Explainability #DCEEEE
+  state "Explanation Visualizations\nSHAP bar chart + Grad-CAM overlay\nCPU + GPU" as ExplVis #DCEEEE
+
+  PatientData --> BDTInstance : patient-specific input
+  BDTInstance --> Prediction : prediction + simulation
+  Prediction --> DTReport
+  Prediction --> Explainability : model interpretability data
+  Explainability --> ExplVis
+}
+
+state "3 . CLINICAL APPLICATION" as Lane3 #E9EDF7 {
+  state "Report Data for UI & Visualization\nmerged report + explanation payload\nCPU + GPU" as ReportData #DCEEEE
+  state "Grad-CAM Multi-Planar Visualization (RENAMED)\naxial / sagittal / coronal slice overlays\nCPU + GPU model eras" as GradCAM #DCEEEE
+  state "Interactive Clinical Dashboard (BUILT)\nStreamlit - what-if UI - deployed: Azure App Service\nCPU model -> GPU model" as Dashboard #DCEEEE
+
+  ReportData --> GradCAM
+  ReportData --> Dashboard
+}
+
+TrainedModels --> BDTInstance : trained model + Markov matrices
+DTReport --> ReportData
+ExplVis --> ReportData
+
+legend right
+  |= Fill color |= Compute platform |
+  |<back:#F5E4DC>    | CPU only -- ran once, never redone on GPU |
+  |<back:#EBE3F7>    | GPU only -- no box in this diagram is GPU-exclusive |
+  |<back:#DCEEEE>    | Both -- executed in both experiments |
+  |<back:#E9EBEE>    | Input -- platform-agnostic data |
+  Tags in parentheses mark deviations from proposal Fig. 7.1:
+  REMOVED / RENAMED / REFINED / ADDED / NOT BUILT / BUILT
+endlegend
+
+@enduml
