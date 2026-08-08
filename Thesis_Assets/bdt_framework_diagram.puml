@@ -4,20 +4,23 @@ title Neuro-DT Framework -- As-Built vs. Proposed
 skinparam backgroundColor #FAFAF7
 skinparam ArrowColor #5B6472
 skinparam ArrowFontColor #5B6472
+skinparam shadowing false
+skinparam roundcorner 12
 skinparam state {
-  BorderColor #DADFE4
   FontColor #1B2027
   ArrowFontSize 11
+  FontSize 12
 }
 skinparam titleFontSize 16
 skinparam titleFontColor #1B2027
+skinparam legendBackgroundColor #FFFFFF
 
-state "1 . DATA PREP & MODEL TRAINING" as Lane1 #FFF8E8 {
-  state "Multimodal ADNI Dataset\n1,549 T1-weighted MRIs + ADNIMERGE.csv\n(REMOVED) RECCMEDS.csv medications log\nCPU - ingested once (Azure ML)" as Dataset #F5E4DC
-  state "Preprocessing\nDICOM -> tensor - resample 128^3 - normalize - cache\nCPU - cached once, reused on GPU" as Preprocess #F5E4DC
-  state "Hybrid Model Training & Validation (REFINED)\n3D DenseNet-121 + Transformer encoder\nStratified 5-fold CV - OneCycleLR + AMP\nCPU: 1/5 folds -> GPU: 5/5 folds" as Training #DCEEEE
-  state "Ablation Study (ADDED)\n7 architecture variants + 4 classical ML baselines\nCPU: 5/11 variants -> GPU: 11/11" as Ablation #DCEEEE
-  state "Trained & Validated BDT Models\nbest_model_fold*.pth - markov_matrices.pkl\n2 generations: CPU-era + GPU-era" as TrainedModels #DCEEEE
+state "1 . DATA PREP & MODEL TRAINING" as Lane1 #F6ECD3;line:C08A2E {
+  state "Multimodal ADNI Dataset\n1,549 T1-weighted MRIs + ADNIMERGE.csv\n<back:#F7E4E1>--RECCMEDS.csv medications log--</back>\n<back:#F5E4DC>CPU</back> ingested once (Azure ML)" as Dataset #FFFFFF;line:B5563B;line.bold
+  state "Preprocessing\nDICOM -> tensor - resample 128^3 - normalize - cache\n<back:#F5E4DC>CPU</back> cached once, reused on GPU" as Preprocess #FFFFFF;line:B5563B;line.bold
+  state "<back:#F6ECD3>REFINED</back> Hybrid Model Training & Validation\n3D DenseNet-121 + Transformer encoder\nStratified 5-fold CV - OneCycleLR + AMP\n<back:#DCEEEE>CPU: 1/5 folds -> GPU: 5/5 folds</back>" as Training #FFFFFF;line:2E8B8B;line.bold
+  state "<back:#E1EFE4>ADDED</back> Ablation Study\n7 architecture variants + 4 classical ML baselines\n<back:#DCEEEE>CPU: 5/11 variants -> GPU: 11/11</back>" as Ablation #FFFFFF;line:2E8B8B;line.bold;line.dashed
+  state "Trained & Validated BDT Models\nbest_model_fold*.pth - markov_matrices.pkl\n<back:#DCEEEE>2 generations: CPU-era + GPU-era</back>" as TrainedModels #FFFFFF;line:2E8B8B;line.bold
 
   Dataset --> Preprocess : curated longitudinal data
   Preprocess --> Training : 1,549 cached tensors (.pt)
@@ -25,13 +28,13 @@ state "1 . DATA PREP & MODEL TRAINING" as Lane1 #FFF8E8 {
   Ablation --> TrainedModels
 }
 
-state "2 . BDT CORE ENGINE" as Lane2 #E8F3EA {
-  state "New Patient Data\nScan + AGE / PTEDUCAT / MMSE / APOE4\nINPUT - platform-agnostic" as PatientData #E9EBEE
-  state "Brain Digital Twin Instance\nCPU model -> GPU model" as BDTInstance #DCEEEE
-  state "Personalized Prediction & Simulation\nMonte Carlo (n=1,000) over Markov transition matrix\nWhat-if: APOE4 - age - education - drug effect\n(medication history not used -- fixed effect sizes)\nCPU + GPU" as Prediction #DCEEEE
-  state "Synthesized Digital Twin Report\n5-year risk trajectory + scenario table\nCPU + GPU" as DTReport #DCEEEE
-  state "Explainability Module (NOT BUILT: Attention Maps)\nSHAP (tabular) - Grad-CAM (imaging, denseblock4)\nAttention Maps -- removed\nCPU: 1 patient -> GPU: multi-patient" as Explainability #DCEEEE
-  state "Explanation Visualizations\nSHAP bar chart + Grad-CAM overlay\nCPU + GPU" as ExplVis #DCEEEE
+state "2 . BDT CORE ENGINE" as Lane2 #E1EFE4;line:3C8768 {
+  state "New Patient Data\nScan + AGE / PTEDUCAT / MMSE / APOE4\n<back:#E9EBEE>INPUT - platform-agnostic</back>" as PatientData #FFFFFF;line:8A93A0;line.bold
+  state "**Brain Digital Twin Instance**\n<back:#DCEEEE>CPU model -> GPU model</back>" as BDTInstance #FFFFFF;line:2E8B8B;line.bold
+  state "Personalized Prediction & Simulation\nMonte Carlo (n=1,000) over Markov transition matrix\nWhat-if: APOE4 - age - education - drug effect\n<back:#F7E4E1>medication history not used -- fixed effect sizes</back>\n<back:#DCEEEE>CPU + GPU</back>" as Prediction #FFFFFF;line:2E8B8B;line.bold
+  state "Synthesized Digital Twin Report\n5-year risk trajectory + scenario table\n<back:#DCEEEE>CPU + GPU</back>" as DTReport #FFFFFF;line:2E8B8B;line.bold
+  state "<back:#F7E4E1>NOT BUILT</back> Explainability Module\nSHAP (tabular) - Grad-CAM (imaging, denseblock4)\n<back:#F7E4E1>--Attention Maps--</back>\n<back:#DCEEEE>CPU: 1 patient -> GPU: multi-patient</back>" as Explainability #FFFFFF;line:2E8B8B;line.bold
+  state "Explanation Visualizations\nSHAP bar chart + Grad-CAM overlay\n<back:#DCEEEE>CPU + GPU</back>" as ExplVis #FFFFFF;line:2E8B8B;line.bold
 
   PatientData --> BDTInstance : patient-specific input
   BDTInstance --> Prediction : prediction + simulation
@@ -40,10 +43,10 @@ state "2 . BDT CORE ENGINE" as Lane2 #E8F3EA {
   Explainability --> ExplVis
 }
 
-state "3 . CLINICAL APPLICATION" as Lane3 #E9EDF7 {
-  state "Report Data for UI & Visualization\nmerged report + explanation payload\nCPU + GPU" as ReportData #DCEEEE
-  state "Grad-CAM Multi-Planar Visualization (RENAMED)\naxial / sagittal / coronal slice overlays\nCPU + GPU model eras" as GradCAM #DCEEEE
-  state "Interactive Clinical Dashboard (BUILT)\nStreamlit - what-if UI - deployed: Azure App Service\nCPU model -> GPU model" as Dashboard #DCEEEE
+state "3 . CLINICAL APPLICATION" as Lane3 #E1EAF6;line:3068B0 {
+  state "Report Data for UI & Visualization\nmerged report + explanation payload\n<back:#DCEEEE>CPU + GPU</back>" as ReportData #FFFFFF;line:2E8B8B;line.bold
+  state "<back:#F6ECD3>RENAMED</back> Grad-CAM Multi-Planar Visualization\naxial / sagittal / coronal slice overlays\n<back:#DCEEEE>CPU + GPU model eras</back>" as GradCAM #FFFFFF;line:2E8B8B;line.bold
+  state "<back:#EDEFF1>BUILT</back> Interactive Clinical Dashboard\nStreamlit - what-if UI - deployed: Azure App Service\n<back:#DCEEEE>CPU model -> GPU model</back>" as Dashboard #FFFFFF;line:2E8B8B;line.bold
 
   ReportData --> GradCAM
   ReportData --> Dashboard
@@ -54,13 +57,14 @@ DTReport --> ReportData
 ExplVis --> ReportData
 
 legend right
-  |= Fill color |= Compute platform |
-  |<back:#F5E4DC>    | CPU only -- ran once, never redone on GPU |
-  |<back:#EBE3F7>    | GPU only -- no box in this diagram is GPU-exclusive |
-  |<back:#DCEEEE>    | Both -- executed in both experiments |
-  |<back:#E9EBEE>    | Input -- platform-agnostic data |
-  Tags in parentheses mark deviations from proposal Fig. 7.1:
-  REMOVED / RENAMED / REFINED / ADDED / NOT BUILT / BUILT
+  |= Border color |= Compute platform |
+  |<back:#B5563B>   | CPU only -- ran once, never redone on GPU |
+  |<back:#7B5CC7>   | GPU only -- no box in this diagram is GPU-exclusive |
+  |<back:#2E8B8B>   | Both -- executed in both experiments |
+  |<back:#8A93A0>   | Input -- platform-agnostic data |
+  ..
+  Inline chips mark deviations from proposal Fig. 7.1:
+  <back:#F7E4E1>REMOVED / NOT BUILT</back>  <back:#F6ECD3>RENAMED / REFINED</back>  <back:#E1EFE4>ADDED</back>  <back:#EDEFF1>BUILT / KEPT</back>
 endlegend
 
 @enduml
