@@ -21,6 +21,9 @@ differ in how completely each run executed, not in what was built.
 
 ### Deviations from the Proposed Framework
 
+**Figure 4.1 — Original proposed framework (reproduced from Fig. 7.1)**
+![Figure 4.1 — Proposed Neuro-DT framework (reproduced from Figure 7.1, Section 7).](figures/fig4_1_proposed_framework.png)
+
 Table 4.0 records where the as-built system departs from Figure 7.1, for
 transparency in the results that follow.
 
@@ -33,6 +36,9 @@ transparency in the results that follow.
 | Explainability Module: SHAP, Grad-CAM, **Attention Maps** | SHAP + Grad-CAM only | Transformer attention-weight visualization was not implemented or evaluated in this work. |
 | **3D Brain Visualization** (atrophy/activation maps) | 2D multi-planar Grad-CAM overlays (axial/sagittal/coronal) | The dashboard renders orthogonal slice views with heatmap overlay rather than an interactive volumetric 3D render. |
 | Ablation study | Not in the original framework diagram | Added as a substantial methodological contribution, executed in two stages across both experiments (Sections 4.1.9 and 4.2.7). |
+
+**Figure 4.2 — As-built framework, annotated by compute platform**
+![Figure 4.2 — As-built framework, annotated by compute platform. Corner tags mark deviations from Figure 4.1; the left-edge stripe on each box marks whether it ran on CPU, GPU, or both.](figures/fig4_2_as_built_framework.png)
 
 ---
 
@@ -51,6 +57,9 @@ imaging preprocessing), pydicom, scikit-learn, MLflow (experiment
 tracking), and the Azure SDKs for blob storage access. NumPy was explicitly
 pinned below version 2.0 after an initial environment build broke MONAI and
 pydicom compatibility under NumPy 2.x.
+
+**Figure 4.3 — Azure ML compute specification**
+![Figure 4.3 — Azure ML Studio compute overview (cluster/instance specification page).](figures/fig4_3_azure_compute_spec.png)
 
 ### 4.1.2 Dataset Acquisition
 
@@ -117,6 +126,9 @@ linking each scan to its clinical record:
 4. **Final manifest generation.** A consolidated manifest joining every
    validated imaging path to its corresponding clinical record was
    produced for use in all subsequent modeling work.
+
+**Figure 4.4 — Ingestion pipeline job run history**
+![Figure 4.4 — Azure ML job run page showing the ingestion pipeline's job sequence and outcomes.](figures/fig4_4_ingestion_job_history.png)
 
 ### 4.1.4 Clinical Feature Selection and Data Cleaning
 
@@ -199,6 +211,9 @@ the high per-step gradient noise inherent to a batch size of 4 on
 high-dimensional 3D volumetric input. Fold 4 was the only fold to train to
 completion (15 epochs) and was adopted as the primary model for this phase.
 
+**Figure 4.5 — Fold-by-fold training status**
+![Figure 4.5 — Azure ML job run page showing the training experiment's fold-by-fold status (completed vs. early-stopped).](figures/fig4_5_fold_status.png)
+
 **Table 4.1 -- Fold 4 classification performance (validation set, n=310)**
 
 | Class | Precision | Recall | F1 | AUC |
@@ -208,9 +223,15 @@ completion (15 epochs) and was adopted as the primary model for this phase.
 | MCI | 0.74 | 0.71 | 0.72 | 0.844 |
 | **Overall** | **0.79** | **0.80** | **0.80** | **0.912** |
 
+**Figure 4.6 — Fold 4 training curves vs. an early-stopped fold**
+![Figure 4.6 — Validation loss/accuracy curve for Fold 4, alongside one early-stopped fold for visual contrast.](figures/fig4_6_fold4_vs_earlystop_curves.png)
+
 Notably, the model produced zero misclassifications between the CN and
 Dementia classes -- the two diagnostically furthest-apart categories --
 across the entire validation set.
+
+**Figure 4.7 — Fold 4 confusion matrix**
+![Figure 4.7 — Confusion matrix for Fold 4, showing zero misclassifications between the CN and Dementia classes.](figures/fig4_7_fold4_confusion_matrix.png)
 
 ### 4.1.9 Ablation Study: CPU-Feasible Variants -- Completed Successfully
 
@@ -234,6 +255,9 @@ Forest, **B4** Gradient Boosting).
 | B2 -- SVM, RBF kernel (tabular) | 0.871 | 0.735 |
 | B3 -- Random Forest (tabular) | 0.943 | 0.830 |
 | B4 -- Gradient Boosting (tabular) | 0.941 | 0.825 |
+
+**Figure 4.8 — CPU-feasible ablation results**
+![Figure 4.8 — CPU-feasible ablation results, bar chart (Table 4.2 visualized).](figures/fig4_8_cpu_ablation_barchart.png)
 
 This comparison revealed that Random Forest and Gradient Boosting
 classifiers -- trained on four tabular features alone, with no imaging
@@ -273,6 +297,9 @@ concentrate in the medial temporal lobe and hippocampal/entorhinal
 regions, consistent with established patterns of atrophy in Alzheimer's
 Disease.
 
+**Figure 4.9 — Grad-CAM overlay, Dementia example (CPU-trained model)**
+![Figure 4.9 — Grad-CAM activation overlay (axial/sagittal/coronal), one Dementia example.](figures/fig4_9_gradcam_dementia_example.png)
+
 ### 4.1.11 Limitations of This Phase
 
 This phase established that the architecture and full data pipeline were
@@ -294,6 +321,9 @@ compute within the scope of this phase.
 To obtain a statistically valid cross-validated result and complete the
 planned ablation and prognostic-modeling work, the identical codebase was
 migrated to a GPU-equipped workstation (NVIDIA RTX 5070 Ti, 17.1 GB VRAM).
+
+**Figure 4.10 — GPU detection / specification confirmation**
+![Figure 4.10 — GPU specification confirmation (nvidia-smi output or the notebook's own GPU-detection print).](figures/fig4_10_gpu_spec_confirmation.png)
 
 ### 4.2.2 Migration: Environment and Data Transfer
 
@@ -351,6 +381,9 @@ resumable state.
 
 With the revised schedule, all five folds completed training successfully.
 
+**Figure 4.11 — Training console log, all 5 folds completing**
+![Figure 4.11 — Training-loop console output showing all 5 folds completing (fold summary table/log).](figures/fig4_11_training_console_log.png)
+
 **Table 4.3 -- 5-fold cross-validated results (GPU-trained model)**
 
 | Fold | Validation AUC |
@@ -383,6 +416,9 @@ above, independent of the cross-validation completeness improvement.
 **Per-class evaluation of the GPU model (Fold 4, n=310):** CN AUC 0.982,
 Dementia AUC 0.958, MCI AUC 0.913; overall accuracy 85%, macro F1 0.85.
 
+**Figure 4.12 — Per-fold AUC and CPU vs. GPU Fold 4 comparison**
+![Figure 4.12 — Bar/line chart of Table 4.3 (per-fold AUC) and Table 4.4 (CPU vs. GPU Fold 4 comparison).](figures/fig4_12_perfold_auc_cpu_vs_gpu.png)
+
 ### 4.2.6 Checkpoint Selection Methodology Experiment
 
 A secondary experiment tested whether checkpoint selection based on maximum
@@ -400,6 +436,9 @@ performed using AUC as both the selection and early-stopping criterion.
 | 4 | 0.9511 | 0.9451 |
 | 5 | 0.8481 | 0.9342 |
 | **Mean ± SD** | **0.8706 ± 0.0461** | **0.9379 ± 0.0069** |
+
+**Figure 4.13 — Loss-selected vs. AUC-selected training curves**
+![Figure 4.13 — Training curves (train/validation loss and AUC per epoch) for one loss-selected fold and its AUC-selected counterpart, illustrating the overfitting pattern.](figures/fig4_13_loss_vs_auc_selected_curves.png)
 
 Although the AUC-selected criterion produced a higher mean score, analysis
 of the per-epoch training logs showed that every fold trained through all
@@ -445,6 +484,9 @@ any change in methodology.
 | SVM, RBF kernel (tabular) | 0.8711 | 0.7355 | 0.7348 |
 | Logistic Regression (tabular) | 0.8649 | 0.7097 | 0.7073 |
 
+**Figure 4.14 — Full ablation study results**
+![Figure 4.14 — Full 11-variant ablation results, bar chart sorted by AUC (Table 4.6 visualized).](figures/fig4_14_full_ablation_barchart.png)
+
 As these results are single-fold (n=310) rather than cross-validated, the
 close scores among the top five variants (within approximately 0.01 AUC of
 one another) should be interpreted as within normal fold-level variance
@@ -481,6 +523,9 @@ pathology. This is presented as an open limitation requiring further
 investigation across a larger patient sample, rather than a confirmed
 finding.
 
+**Figure 4.15 — Grad-CAM overlays, multiple patients (GPU-trained model)**
+![Figure 4.15 — Grad-CAM overlays for at least two patients, supporting the "diffuse activation" discussion.](figures/fig4_15_gradcam_multipatient.png)
+
 **Markov chain prognostic model.** Disease-state transition probabilities
 were estimated from longitudinal ADNI visit sequences, stratified by APOE4
 genotype (Table 4.0 notes the correction of this component's name relative
@@ -492,6 +537,9 @@ showed a higher MCI to Dementia transition probability (0.184) than
 APOE4-negative patients (0.133) -- the direction consistent with APOE4's
 known status as a progression risk factor.
 
+**Figure 4.16 — Markov transition matrix heatmaps, APOE4+ vs. APOE4-**
+![Figure 4.16 — Markov transition-matrix heatmap, shown for the APOE4-positive and APOE4-negative strata side by side.](figures/fig4_16_markov_heatmaps_apoe4.png)
+
 **What-if intervention simulation.** Simulated pharmacological intervention
 (reducing the MCI to Dementia transition probability by a fixed
 percentage, as a proxy for anti-amyloid therapies such as Lecanemab and
@@ -499,6 +547,9 @@ Donanemab) produced plausible directional effects; as noted in Table 4.0,
 these simulated effect sizes are explicitly not calibrated against real
 clinical-trial outcome data and are presented as an illustrative capability
 of the framework rather than a clinical efficacy claim.
+
+**Figure 4.17 — What-if simulation trajectory plot**
+![Figure 4.17 — 5-year risk trajectory plot under baseline vs. treatment scenarios.](figures/fig4_17_whatif_trajectory.png)
 
 ### 4.2.9 Methodological Robustness Checks
 
@@ -518,6 +569,9 @@ patient records without removing duplicate visits for the same individual,
 which caused one patient's repeated visit to silently overwrite another's
 result and misreport the summary count; deduplicating by patient
 identifier before sampling corrected this.
+
+**Figure 4.18 — Age-sensitivity, per-patient direction**
+![Figure 4.18 — Age-sensitivity multi-patient result (per-patient direction table/plot).](figures/fig4_18_age_sensitivity_perpatient.png)
 
 ### 4.2.10 Clinical Dashboard Deployment
 
@@ -547,36 +601,23 @@ step in this thesis, correctly predicting the patient's true diagnosis
 genotype-effect figures matching hand-computed values derived independently
 from the underlying transition matrices.
 
----
+**Figure 4.19 — Dashboard prediction output, held-out patient**
+![Figure 4.19 — Deployed dashboard's prediction output for the held-out verification patient described in Section 4.2.10.](figures/fig4_19_dashboard_heldout_prediction.png)
 
-## Screenshots to Include
-
-### Section 4.1 (CPU experiment)
-- Azure ML Studio compute overview (cluster/instance specification page)
-- Azure ML job run page showing the ingestion pipeline's job sequence and outcomes
-- Azure ML job run page showing the training experiment's fold-by-fold status (completed vs. early-stopped)
-- A validation loss/accuracy curve plot for Fold 4, ideally alongside one early-stopped fold for visual contrast
-- The confusion matrix for Fold 4
-- The Grad-CAM activation overlay figure (axial/sagittal/coronal, one Dementia example)
-- The CPU-feasible ablation results bar chart (Table 4.2, visualized)
-
-### Section 4.2 (GPU experiment)
-- GPU specification confirmation (e.g. `nvidia-smi` output or the notebook's own GPU-detection print)
-- Training-loop console output showing all 5 folds completing (fold summary table/log)
-- A bar chart or line plot of Table 4.3 (per-fold AUC) and Table 4.4 (CPU vs. GPU Fold 4 comparison)
-- Training curves (train/validation loss and AUC per epoch) for at least one loss-selected fold and its AUC-selected counterpart, illustrating the overfitting pattern described in Section 4.2.6
-- The full ablation results table/bar chart (Table 4.6), ideally sorted by AUC as shown
-- Grad-CAM overlays for at least two patients (to support the "diffuse activation" discussion)
-- The Markov transition-matrix heatmap, ideally shown for the APOE4-positive and APOE4-negative strata side by side
-- The age-sensitivity multi-patient result (the per-patient direction table/plot)
-- A what-if simulation trajectory plot (5-year risk curves under baseline vs. treatment scenarios)
-- A screenshot of the deployed dashboard's prediction output for the held-out verification patient described in Section 4.2.10
-- The dashboard's "About"/model-info panel showing the reported performance metrics as displayed to end users
+**Figure 4.20 — Dashboard "About"/model-info panel**
+![Figure 4.20 — Dashboard's "About"/model-info panel showing the reported performance metrics as displayed to end users.](figures/fig4_20_dashboard_about_panel.png)
 
 ---
 
 ## Notes for Integration
 
+- Every figure referenced above is placed inline, immediately after the
+  sentence or table it illustrates, as `![...](figures/fig4_N_slug.png)`.
+  Create a `figures/` folder next to this file and drop each image in
+  under the exact filename referenced, and it will render directly when
+  converted to Word/PDF (e.g. via Pandoc) or viewed in any Markdown
+  previewer. Figures 4.1 and 4.2 are the proposed and as-built framework
+  diagrams; 4.3 onward are the experiment screenshots/plots.
 - Infrastructure minutiae not needed for the results narrative (specific
   Azure resource names, job identifiers, credential handling, container-
   build debugging) have been kept out of this chapter deliberately -- they
