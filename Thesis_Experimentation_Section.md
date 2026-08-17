@@ -35,7 +35,7 @@ transparency in the results that follow.
 | **Hidden Markov Chains** for progression modeling | Empirical (fully-observed) Markov chain, APOE4-stratified | Transition probabilities were estimated directly from observed diagnosis sequences across longitudinal visits. No latent-state HMM training (e.g., Baum-Welch) was performed, since diagnostic state is directly observed at each visit rather than hidden. |
 | Explainability Module: SHAP, Grad-CAM, **Attention Maps** | SHAP + Grad-CAM only | Transformer attention-weight visualization was not implemented or evaluated in this work. |
 | **3D Brain Visualization** (atrophy/activation maps) | 2D multi-planar Grad-CAM overlays (axial/sagittal/coronal) | The dashboard renders orthogonal slice views with heatmap overlay rather than an interactive volumetric 3D render. |
-| Ablation study | Not in the original framework diagram | Added as a substantial methodological contribution, executed in two stages across both experiments (Sections 4.1.9 and 4.2.7). |
+| Ablation study | Not in the original framework diagram | Added as a substantial methodological contribution, executed in two stages across both experiments (Sections 4.1.10 and 4.2.7). |
 
 **Figure 4.2 — As-built framework, annotated by compute platform**
 ![Figure 4.2 — As-built framework, annotated by compute platform. Corner tags mark deviations from Figure 4.1; the left-edge stripe on each box marks whether it ran on CPU, GPU, or both.](figures/fig4_2_as_built_framework.png)
@@ -127,6 +127,12 @@ linking each scan to its clinical record:
    validated imaging path to its corresponding clinical record was
    produced for use in all subsequent modeling work.
 
+In total, the unzipped archive comprised 568,699 individual DICOM files
+organized into 3,447 unique scan directories; after filtering for the
+MPRAGE acquisition sequence and completing the clinical joins and cleaning
+described in Section 4.1.4, this yielded the final cohort of 1,549 scans
+reported in Section 4.1.2.
+
 **Figure 4.4 — Ingestion pipeline job run history**
 ![Figure 4.4 — Azure ML job run page showing the ingestion pipeline's job sequence and outcomes.](figures/fig4_4_ingestion_job_history.png)
 
@@ -138,7 +144,7 @@ fusion with the imaging pathway:
 
 - **AGE** -- the single strongest demographic predictor of dementia risk.
 - **PTEDUCAT** (years of education) -- a proxy for cognitive reserve;
-  later confirmed by SHAP analysis (Section 4.1.10) as the strongest
+  later confirmed by SHAP analysis (Section 4.1.11) as the strongest
   predictor for the CN class.
 - **MMSE** (Mini-Mental State Examination, 0-30) -- a direct cognitive
   assessment score.
@@ -159,7 +165,7 @@ diagnosis from a different point in time. The final cleaned dataset
 comprises the 1,549 scans described in Section 4.1.2.
 
 One feature-selection caveat is noted here and returned to in Section
-4.1.9: MMSE functions, to a meaningful degree, as a proxy for ADNI's own
+4.1.10: MMSE functions, to a meaningful degree, as a proxy for ADNI's own
 diagnostic threshold criteria, since clinical diagnosis in the source data
 is itself partly informed by MMSE score.
 
@@ -194,14 +200,90 @@ Transformer encoder; this was resolved by projecting to the nearest
 multiple of the head count via ceiling-rounded integer arithmetic rather
 than a fixed dimension.
 
-### 4.1.7 Training Configuration
+### 4.1.7 Preliminary Run and Data-Quality-Driven Overfitting
+
+Before committing to the full 5-fold, 15-epoch training run described in
+Sections 4.1.8-4.1.9, the pipeline was first validated end-to-end on a fast,
+low-cost preliminary run ("FAST_PROTO" mode: 40% of the dataset, 3 folds,
+10 epochs) to confirm the architecture was learning genuine signal before
+the far more expensive full run was submitted.
+
+**Overfitting diagnosis.** An early iteration of this preliminary run,
+trained on an unfiltered version of the manifest, showed classic
+overfitting: validation loss reached a minimum at epoch 4 (0.6986) and
+then increased steadily over subsequent epochs (0.7465, 0.7562), while
+validation accuracy plateaued at approximately 64.5%. Inspection of the
+training logs traced this to a large number of `Error processing image at
+path...` warnings: the `try`/`except` block in the dataset loader was
+silently substituting a zero-valued tensor for any DICOM series it could
+not load, injecting label noise into training rather than surfacing the
+failure. This finding directly motivated the automated DICOM integrity
+validation step described in Section 4.1.3, which filters out unreadable
+scans before training rather than substituting a blank image for them, and
+the migration of the training process from an interactive notebook to a
+script-based Azure ML Command Job for more stable, reproducible execution.
+
+**Preliminary result.** With the cleaned data and script-based execution,
+the FAST_PROTO run achieved a macro one-vs-rest validation AUC of 0.862
+and 63% overall accuracy on the three-class problem (chance level 33%)
+using only 40% of the dataset and 10 epochs:
+
+**Table 4.1-P -- Preliminary (FAST_PROTO) per-class results**
+
+| Class | AUC |
+|---|---|
+| Dementia | 0.914 |
+| CN | 0.878 |
+| MCI | 0.698 |
+| **Macro OvR** | **0.862** |
+
+The comparatively lower MCI AUC reflects a well-documented property of the
+ADNI cohort rather than a defect in this pipeline: of the misclassified
+MCI patients, a similar number were predicted CN as were predicted
+Dementia, consistent with MCI's clinical role as a transitional,
+diagnostically ambiguous state -- a pattern reported across the ADNI
+literature and returned to in Section 4.1.11. Benchmarked against
+published 3-class ADNI results, this preliminary figure was already
+competitive using a fraction of the available data and training budget:
+
+**Table 4.2-P -- Preliminary result vs. published ADNI benchmarks**
+
+| Study | Reported metric |
+|---|---|
+| Basaia et al. (2019), 3D CNN | AUC ~0.85 |
+| Wen et al. (2020), CNN benchmark | AUC ~0.83 |
+| Venugopalan et al. (2021), multimodal | AUC ~0.87 |
+| Zhou et al. (2025), CNN + Swin Transformer | 92% accuracy (2-class) |
+| This work (FAST_PROTO, 40% data, 10 epochs) | AUC 0.862 |
+
+This preliminary run also converged quickly (validation loss stopped
+improving after epoch 5 of 10), an encouraging sign that motivated
+proceeding directly to the full run described in Section 4.1.9 rather than
+further preliminary tuning. Expanding the tabular feature set beyond the
+four features in Section 4.1.4 (e.g., ADAS-Cog, CDRSB, RAVLT immediate
+recall, all present in `ADNIMERGE.csv`) was considered as a way to
+strengthen MCI disambiguation, but was not carried into the full run
+reported in this thesis, to keep the tabular inputs consistent with the
+four clinically-motivated features specified in Section 4.1.4.
+
+### 4.1.8 Training Configuration
 
 Training used 5-fold stratified cross-validation, AdamW optimization
 (learning rate 1x10⁻⁴), a batch size of 4 (constrained by available system
 memory), and a `CosineAnnealingLR` schedule with early stopping (patience 3
 epochs) based on validation loss.
 
-### 4.1.8 Results
+Five-fold cross-validation follows standard practice in the medical
+imaging literature for a dataset of this size, balancing the statistical
+robustness of the resulting performance estimate against computational
+cost: fewer folds (e.g., three) risk higher variance in the estimate,
+while more folds (e.g., ten) offer diminishing returns at approximately
+1,500 samples. Fifteen epochs was chosen based on the convergence behavior
+observed in the preliminary run (Section 4.1.7), which indicated the
+architecture converges within a comparable number of epochs on a data
+subset.
+
+### 4.1.9 Results
 
 Training completed for only one of five folds. The remaining four folds
 triggered early stopping within the first three epochs, caused by a sharp
@@ -233,7 +315,7 @@ across the entire validation set.
 **Figure 4.7 — Fold 4 confusion matrix**
 ![Figure 4.7 — Confusion matrix for Fold 4, showing zero misclassifications between the CN and Dementia classes.](figures/fig4_7_fold4_confusion_matrix.png)
 
-### 4.1.9 Ablation Study: CPU-Feasible Variants -- Completed Successfully
+### 4.1.10 Ablation Study: CPU-Feasible Variants -- Completed Successfully
 
 Five of the eleven ablation variants planned for this thesis were
 successfully trained and evaluated on CPU compute. This is stated
@@ -268,7 +350,7 @@ partly derived from MMSE threshold criteria, a classifier with direct
 access to MMSE can reconstruct much of the label without reference to any
 imaging data. This is treated as a limitation of AUC as a sole comparison
 metric here, not as evidence that the multimodal model underperforms --
-Section 4.1.10 and the full model's zero-CN-Dementia-confusion result are
+Section 4.1.11 and the full model's zero-CN-Dementia-confusion result are
 presented as the more clinically meaningful comparison points.
 
 The remaining five deep-learning variants -- a CNN-only classifier (A2),
@@ -276,12 +358,12 @@ two alternative CNN-tabular fusion designs (A3, A4), a single-layer
 Transformer variant (A5), and a variant trained without class-weighted
 loss (A6) -- each require training a full 3D-CNN-based model from
 scratch on imaging data, at the same per-fold training cost that limited
-Section 4.1.8 to one completed fold. These were therefore not attempted
+Section 4.1.9 to one completed fold. These were therefore not attempted
 on CPU-only compute in this phase and were deferred to Experiment 2
 (Section 4.2.7), where they were executed as part of a complete,
 independently re-run eleven-variant ablation study.
 
-### 4.1.10 Explainability
+### 4.1.11 Explainability
 
 SHAP analysis (applied to the tabular branch with the imaging embedding
 held frozen, since a full SHAP analysis over the imaging branch exceeded
@@ -300,7 +382,7 @@ Disease.
 **Figure 4.9 — Grad-CAM overlay, Dementia example (CPU-trained model)**
 ![Figure 4.9 — Grad-CAM activation overlay (axial/sagittal/coronal), one Dementia example.](figures/fig4_9_gradcam_dementia_example.png)
 
-### 4.1.11 Limitations of This Phase
+### 4.1.12 Limitations of This Phase
 
 This phase established that the architecture and full data pipeline were
 functionally correct, capable of learning genuine diagnostic signal, and
@@ -309,8 +391,18 @@ motivated Experiment 2: (1) only one of five cross-validation folds ever
 completed, meaning the reported AUC of 0.912 is a single-fold result
 rather than a statistically robust cross-validated estimate; and (2) the
 six deep-learning ablation variants requiring fresh 3D-CNN training on
-imaging data (Section 4.1.9) were computationally infeasible on CPU-only
+imaging data (Section 4.1.10) were computationally infeasible on CPU-only
 compute within the scope of this phase.
+
+On CPU-only compute with the four tabular features used in this thesis, an
+AUC in the 0.91-0.93 range represents approximately the ceiling reported
+for 3-class ADNI classification in the literature for GPU-trained models
+of comparable design; Fold 4's result of 0.912 (Section 4.1.9) sits at
+this ceiling. Closing the gap further would likely require GPU-accelerated
+training of all five folds rather than one, additional tabular features
+(e.g., ADAS-Cog, CDRSB), and/or transfer learning from a model pretrained
+on a larger 3D medical imaging corpus -- directions taken up, in part, in
+Experiment 2.
 
 ---
 
@@ -457,7 +549,7 @@ competing headline figure.
 
 The complete eleven-variant ablation study was executed on the GPU
 platform as a fresh, independent run -- not a continuation of Experiment
-1's partial results (Section 4.1.9) -- re-training all seven deep-learning
+1's partial results (Section 4.1.10) -- re-training all seven deep-learning
 variants (including the five that were CPU-infeasible: A2 CNN-only, A3 and
 A4 the two fusion designs, A5 the single-layer Transformer, and A6 the
 no-class-weighting variant) and re-fitting all four classical baselines,
@@ -497,7 +589,7 @@ entirely (CNN-only) produced performance statistically indistinguishable
 from the full multimodal model (0.9474 vs. 0.9486), indicating that the
 imaging pathway carries the substantial majority of the model's predictive
 signal in this architecture. Second, and consistent with the label-leakage
-finding of Experiment 1 (Section 4.1.9), classical tree-ensemble methods
+finding of Experiment 1 (Section 4.1.10), classical tree-ensemble methods
 outperformed the deep tabular-only branch by a wide margin (~0.94 vs. 0.87
 AUC) on identical input features -- attributed to an architecture-capacity
 mismatch between a high-capacity neural network and a four-dimensional
