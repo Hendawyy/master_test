@@ -47,6 +47,8 @@ This is the primary result of this thesis: a genuine 5-fold cross-validated esti
 
 On this shared fold, the GPU-trained model outperforms the CPU-trained model by 0.039 AUC, attributable to the scheduler and batch-size changes above, independent of the cross-validation completeness improvement.
 
+The full 5-fold training run completed in approximately **1 hour** -- a dramatic reduction from the CPU run's 1 day 10 hours (Section 1.1.9), despite the GPU run completing all five folds to their full epoch budget versus the CPU run completing only one. This reflects the combined effect of GPU-accelerated 3D convolution, the larger batch size (16 vs. 4), and mixed-precision training, rather than any change to the amount of data or number of epochs per fold.
+
 Fig 27 5-Fold Training Log (All Folds Completing)
 
 ### 2.1.6 Checkpoint Selection Methodology Experiment
@@ -66,9 +68,11 @@ A secondary experiment tested whether checkpoint selection based on maximum vali
 
 Although the AUC-selected criterion produced a higher mean score, analysis of the per-epoch training logs showed that every fold trained through all 20 available epochs without triggering early stopping, reaching training accuracies of 97-99% by the final epochs -- a clear indicator of overfitting that a loss-based criterion would have halted earlier. Because the AUC criterion also selects the checkpoint that is the argmax of a noisy metric evaluated on a validation set of only ~310 samples, this method is a biased estimator of true generalization performance. The loss-selected result (0.8706 ± 0.0461) was therefore retained as the primary reported result; this comparison is presented as a methodological contribution regarding checkpoint-selection bias rather than as a competing headline figure.
 
+This second run completed in approximately **90 minutes** -- slightly longer than the loss-selected run's 1 hour, consistent with every fold training through its full 20-epoch budget here (Section 2.1.6's overfitting observation) rather than being cut short by early stopping as several folds were in the loss-selected run.
+
 ### 2.1.7 Full Ablation Study
 
-The complete eleven-variant ablation study was executed on the GPU platform as a fresh, independent run -- not a continuation of Experiment 1's partial results (Section 1.1.10) -- re-training all seven deep-learning variants (including the five that were CPU-infeasible: CNN-only, two fusion designs, the single-layer Transformer, and the no-class-weighting variant) and re-fitting all four classical baselines, each evaluated on the same Fold 4 data split used throughout this thesis.
+The complete eleven-variant ablation study was executed on the GPU platform as a fresh, independent run -- not a continuation of Experiment 1's partial results (Section 1.1.10) -- re-training all seven deep-learning variants (including the five that were CPU-infeasible: CNN-only, two fusion designs, the single-layer Transformer, and the no-class-weighting variant) and re-fitting all four classical baselines, each evaluated on the same Fold 4 data split used throughout this thesis. The full study completed in **3 hours 58 minutes** -- feasible on GPU within an afternoon, versus the 8-12 hours the CPU-only fallback would have required for the deep-learning variants alone (Section 1.1.10), before even accounting for the classical baselines.
 
 **Table 13 -- Full ablation study results**
 

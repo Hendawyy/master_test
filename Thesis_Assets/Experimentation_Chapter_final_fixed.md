@@ -155,6 +155,8 @@ Five-fold cross-validation follows standard practice in the medical imaging lite
 
 Training completed for only one of five folds. The remaining four folds triggered early stopping within the first three epochs, caused by a sharp validation-loss spike in early training \-- attributed to the learning-rate schedule beginning at full magnitude with no warmup period, combined with the high per-step gradient noise inherent to a batch size of 4 on high-dimensional 3D volumetric input. Fold 4 was the only fold to train to completion (15 epochs) and was adopted as the primary model for this phase.
 
+The full training job (all five fold attempts, run as a single Azure ML Command Job, `BDT-Hybrid-Model-Training-CleanData`, run ID `f9ec3447-642d-45c1-9bd2-e7da9e702e02`) ran for **1 day, 10 hours** of compute time. The great majority of this was consumed by Fold 4's complete 15-epoch run on CPU; the four early-stopped folds each contributed comparatively little wall-clock time by comparison, since early stopping halted them within their first few epochs.
+
 ![][image12]  
 Fig 12 Five Folds Result  
 ![][image13]  
