@@ -252,7 +252,18 @@ Two findings support the model's external clinical validity, without the transit
 
 Fig 23 Markov Transition Matrix Heatmap (Full Cohort) *(insert `markov_heatmap.png` from Cell 13 here for a visual alongside the tables above)*
 
-With the same fix in place, the Digital Twin what-if simulation (Cell 15) also now produces directionally sound output for a sample validation patient (016\_S\_1149, MCI, APOE4-negative): baseline 5-year Dementia probability 54.9%, rising to 61.5% under a simulated APOE4-positive scenario, and falling to 47.1% and 43.6% respectively under simulated Lecanemab (30%) and Donanemab (35%) intervention effects \-- every effect in the clinically expected direction. This is not numbered as a figure here since it wasn't part of the original request, but `whatif_016_S_1149.png` (Cell 15) is available if a CPU-side Digital Twin demonstration is wanted alongside the GPU section's.
+With the same fix in place, the Digital Twin what-if simulation (Cell 15) also now produces directionally sound output. For a sample validation patient (016\_S\_1149, diagnosed MCI, APOE4-negative), the model's simulated 5-year Dementia probability was 54.9% at baseline, rising to 61.5% under a simulated APOE4-positive scenario, and falling to 47.1% and 43.6% respectively under simulated Lecanemab (30% intervention effect) and Donanemab (35% intervention effect) \-- every effect in the clinically expected direction: the risk factor increases risk, both simulated treatments decrease it, and the stronger simulated treatment effect produces the larger decrease.
+
+**Table 9 \-- What-if simulation, Patient 016\_S\_1149 (5-year Dementia probability)**
+
+| Scenario | P(Dementia) at Year 5 |
+| :---- | :---- |
+| Baseline (APOE4-negative) | 54.9% |
+| APOE4-positive (no treatment) | 61.5% |
+| APOE4-positive \+ Lecanemab (30%) | 47.1% |
+| APOE4-positive \+ Donanemab (35%) | 43.6% |
+
+Fig 24 What-if Simulation \-- Patient 016\_S\_1149 (Baseline / APOE4 / Lecanemab / Donanemab trajectories)
 
 ### 1.1.13 Limitations of This Phase
 
