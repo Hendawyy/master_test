@@ -1,0 +1,1148 @@
+\documentclass[pdflatex,sn-mathphys-num]{sn-jnl}% Math and Physical Sciences Numbered Reference Style
+
+\usepackage{graphicx}%
+\usepackage{multirow}%
+\usepackage{amsmath,amssymb,amsfonts}%
+\usepackage{amsthm}%
+\usepackage{mathrsfs}%
+\usepackage[title]{appendix}%
+\usepackage{xcolor}%
+\usepackage{textcomp}%
+\usepackage{manyfoot}%
+\usepackage{booktabs}%
+\usepackage{algorithm}%
+\usepackage{algorithmicx}%
+\usepackage{algpseudocode}%
+\usepackage{listings}%
+\usepackage{rotating}%% required for \begin{sidewaystable} -- NOT in the original template preamble;
+                        %% this omission is the most likely reason your tables were not compiling/appearing
+\usepackage{caption}%% needed for \caption* (unnumbered captions on the literature-review tables)
+
+\providecommand{\tightlist}{%% pandoc-generated macro used by the itemize/enumerate lists below;
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}%% also missing from the original template preamble
+
+\theoremstyle{thmstyleone}%
+\newtheorem{theorem}{Theorem}%
+\newtheorem{proposition}[theorem]{Proposition}%
+
+\theoremstyle{thmstyletwo}%
+\newtheorem{example}{Example}%
+\newtheorem{remark}{Remark}%
+
+\theoremstyle{thmstylethree}%
+\newtheorem{definition}{Definition}%
+
+\raggedbottom
+
+\begin{document}
+
+\title[Article Title]{Brain Digital Twin (BDT): A Hybrid 3D CNN-Transformer Framework with Markov-Based Prognostic Simulation for Personalized Alzheimer's Disease Progression Modeling}
+
+\author*[1,2]{\fnm{Seif} \sur{Hendwawy}}\email{S.Aboelha33814@student.aast.edu}
+
+\author[2,3]{\fnm{Fahima} \sur{Maghraby}}\email{
+Fahima@aast.edu}
+\equalcont{These authors contributed equally to this work.}
+
+\author[1,2]{\fnm{Ahmed} \sur{Salem}}\email{a.salem@aast.edu}
+\equalcont{These authors contributed equally to this work.}
+
+\affil*[1]{\orgdiv{Computer Science}, \orgname{Arab Academy for Science, Technology and Maritime Transport (AASTMT)}, \orgaddress{\street{Sheraton}, \city{Cairo}, \country{Egypt}}}
+
+\affil[2]{\orgdiv{Computer Science}, \orgname{Arab Academy for Science, Technology and Maritime Transport (AASTMT)}, \orgaddress{\street{Sheraton}, \city{Cairo}, \country{Egypt}}}
+
+\affil[3]{\orgdiv{Computer Science}, \orgname{Arab Academy for Science, Technology and Maritime Transport (AASTMT)}, \orgaddress{\street{Sheraton}, \city{Cairo}, \country{Egypt}}}
+
+\abstract{Alzheimer's Disease (AD) affects over 55 million people worldwide, a figure projected to reach 139 million by 2050, yet current AI-based diagnostic tools remain static classifiers that cannot answer the patient-specific ``what-if'' questions the new generation of disease-modifying therapies (DMTs) demands. This work designs, implements, and validates a Brain Digital Twin (BDT): a hybrid deep-learning and simulation framework that combines a 3D DenseNet-121 convolutional backbone with a Transformer encoder for multimodal Alzheimer's classification, and an empirically estimated Markov Chain progression model for personalized, simulative ``what-if'' forecasting. The BDT was developed and validated across two sequential experimental phases sharing an identical codebase and architecture. Experiment 1, on CPU-only Azure Machine Learning compute, established the full data pipeline end to end, achieved a single-fold validation AUC of 0.912, completed five of eleven planned ablation-study variants, and validated proof-of-concept explainability and progression-modeling components, while also surfacing two hard constraints of CPU-only compute: an out-of-memory failure after twelve hours on the full ablation study, and only one of five cross-validation folds completing due to training instability. Experiment 2, migrated to a GPU workstation with a revised training schedule, removed both constraints. All five folds completed in approximately one hour, yielding the thesis's primary result of AUC 0.8706 $\pm$ 0.0461; the complete eleven-variant ablation study finished in under four hours; and the framework was extended to population-level Digital Twin validation, multi-patient age-sensitivity analysis, a novel early-versus-late intervention-timing simulation, and deployment to a production clinical dashboard on Azure App Service, validated against a genuine held-out patient. Across both experiments, per-class validation AUC reached up to 0.982 (Cognitively Normal), 0.958 (Dementia), and 0.913 (Mild Cognitive Impairment). SHAP and Grad-CAM explainability, together with an APOE4-stratified Markov transition matrix consistent with the known clinical direction of APOE4 as a progression risk factor, support the framework's clinical interpretability and validity. These results establish the BDT as a working, end-to-end, and clinically interpretable simulative alternative to static AD classifiers, ready for the interactive clinical deployment phase.}
+
+\keywords{Brain Digital Twin, Alzheimer's Disease, Multimodal deep learning, 3D Convolutional Neural Network, Transformer, Markov Chain, Explainable AI, SHAP, Grad-CAM, ADNI}
+
+\maketitle
+
+\section{Introduction}\label{sec1}
+
+Alzheimer's Disease (AD) is a progressive neurodegenerative disorder and
+one of the most significant public health crises of the 21st century.
+Defined by the pathological accumulation of amyloid-beta plaques and
+neurofibrillary tangles, the disease leads to a relentless decline in
+cognitive function, memory, and the ability to perform daily activities.
+Despite the availability of large-scale, longitudinal research datasets
+like the Alzheimer's Disease Neuroimaging Initiative (ADNI), AD remains
+incurable, so there is a continuing need for advanced computational
+tools to improve diagnosis, monitoring, and treatment planning.
+
+A primary obstacle in managing AD is its profound heterogeneity. The
+disease does not follow a uniform path; it manifests with considerable
+variability in age of onset, rate of cognitive decline, and individual
+biomarker expression. This complexity challenges traditional
+``one-size-fits-all'' approaches to care. In response, the concept of
+the Digital Twin (DT), a dynamic, virtual, and personalized model of a
+patient, has emerged from engineering as a transformative paradigm for
+personalized medicine. A Health Digital Twin integrates multimodal data
+(imaging, genetics, clinical scores) and simulates time-dependent
+biological processes and disease progression, enabling virtual
+experimentation with hypothetical interventions.
+
+\subsection{Motivation}\label{motivation}
+The motivation for developing a Brain Digital Twin for Alzheimer's is
+rooted in a global health crisis that has reached a critical point,
+driven by large societal costs and a recent shift in therapeutic
+possibilities.
+
+\textbf{The scale of the Alzheimer's crisis.} According to the World
+Health Organization, over 55 million people worldwide are living with
+dementia, with AD being the most common cause \cite{bib21}. This number is
+projected to reach an estimated 139 million by 2050 \cite{bib22}. The
+economic impact is equally severe: the total global cost of dementia is
+expected to surpass \$2.8 trillion USD by 2030. This escalating crisis
+places an immense burden on patients, families, and healthcare systems,
+and it demands solutions that can change how the disease is monitored
+and managed.
+
+\textbf{The new therapeutic landscape.} For decades, treatment for AD
+was limited to symptomatic drugs, such as cholinesterase inhibitors
+(e.g., Donepezil), which do not halt the underlying neurodegenerative
+process \cite{bib23}. The field has since changed with the arrival of
+disease-modifying therapies (DMTs): drugs like Lecanemab (Leqembi),
+designed to clear amyloid plaques, have shown in clinical trials a
+statistically significant slowing of cognitive decline by approximately
+27\% over 18 months compared to placebo \cite{bib24}. The arrival of these
+powerful but complex DMTs is the central motivation for this work. Their
+varied efficacy, potential side effects, and high cost mean a generic
+diagnosis is no longer sufficient. Clinicians now need a way to combine
+a patient's own data to simulate and compare potential futures under
+different intervention scenarios, a capability current systems lack.
+
+\subsection{Problem Statement}\label{problem-statement}
+
+The fundamental problem addressed here is that current artificial
+intelligence tools for Alzheimer's are static classifiers, while the
+clinical need in the era of disease-modifying therapies is for dynamic,
+personalized simulators \cite{bib10,bib11,bib25}. This disconnect creates a gap
+between existing technology and the requirements of modern clinical
+practice \cite{bib26,bib27}, which breaks down into several specific
+limitations of current approaches:
+
+\begin{itemize}
+
+\tightlist
+\item
+  \textbf{Static predictions.} Most AI systems provide a one-time
+  diagnosis or risk score and cannot model the continuous, longitudinal
+  disease trajectories that define a patient's journey.
+\item
+  \textbf{Lack of personalization.} Models are typically trained on
+  population-level data and cannot dynamically adapt to an individual's
+  unique combination of neuroimaging features, biomarkers, genetic risk
+  factors (e.g., APOE4 status), or treatment history.
+\item
+  \textbf{Fragmented data integration.} Many models use multimodal data
+  without a cohesive framework for integrating these streams into a
+  single, dynamic model that evolves over time.
+\item
+  \textbf{Limited simulation capabilities.} Existing models are
+  predictive, not simulative; they cannot answer ``what-if'' questions
+  essential for personalized treatment planning, such as forecasting a
+  patient's progression with versus without a specific medication.
+\item
+  \textbf{``Black-box'' nature.} Many deep learning models are opaque,
+  making it difficult for clinicians to trust their outputs without
+  clear, visual explanations linking a prediction back to the underlying
+  patient data.
+\item
+  \textbf{No feedback loop.} Models do not adapt to evolving patient
+  data.
+\end{itemize}
+
+\subsection{Objectives and
+Contributions}\label{objectives-and-contributions}
+
+The primary objective of this work is to design, implement, and validate
+a novel Brain Digital Twin (BDT) framework for the personalized
+simulation of Alzheimer's Disease progression. This overarching goal
+breaks down into five specific objectives:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{Develop a unified multimodal framework}: an end-to-end
+  computational pipeline that ingests, harmonizes, and integrates
+  multimodal data from ADNI, including 3D neuroimaging, clinical
+  assessments, cognitive scores, and genetic biomarkers.
+\item
+  \textbf{Implement a state-of-the-art diagnostic model}: a hybrid deep
+  learning model using a 3D Convolutional Neural Network for spatial
+  feature extraction from MRI scans and a Transformer-based architecture
+  for robust, multi-class disease-stage classification.
+\item
+  \textbf{Create a data-driven prognostic engine}: a probabilistic
+  progression model, based on Markov Chains, to simulate longitudinal
+  disease-state transitions from real patient data, forming the temporal
+  core of the BDT.
+\item
+  \textbf{Ensure clinical interpretability}: multi-level explainability
+  using SHAP to interpret tabular feature contributions and Grad-CAM to
+  generate visual explanations of the neuroimaging features driving
+  diagnostic decisions.
+\item
+  \textbf{Demonstrate clinical utility through simulation}: ``what-if''
+  simulations for clinically relevant use cases, including the impact of
+  genetic risk factors (APOE4) and the potential effects of
+  pharmacological interventions on individual patient trajectories.
+\end{enumerate}
+
+Beyond the originally proposed scope, this work makes two further
+contributions realized during implementation: a systematic
+\textbf{ablation study} (eleven architectural and classical-baseline
+variants) quantifying the contribution of each component of the BDT
+architecture, which was not present in the original framework design;
+and a direct, controlled \textbf{CPU-versus-GPU experimental comparison}
+using the identical codebase and data splits, characterizing exactly
+what compute-platform migration changes and does not change about the
+resulting model. Table~\ref{tab1} summarizes where the as-built system departs
+from the originally proposed framework, for full transparency in the
+results that follow.
+
+\begin{table}[h]
+\caption{Implementation deviations from the proposed framework}\label{tab1}
+\begin{tabular}{@{}p{0.24\textwidth}p{0.24\textwidth}p{0.42\textwidth}@{}}
+\toprule
+\textbf{Proposed} & \textbf{Implemented} & \textbf{Reason} \\
+\midrule
+Dataset sources: MRIs, ADNIMERGE, RECCMEDS & MRIs + ADNIMERGE only & The medications log (RECCMEDS.csv) was not integrated; simulated drug intervention uses fixed literature-informed effect sizes (Lecanemab 30\%, Donanemab 35\% reduction in MCI$\to$Dementia transition probability) rather than per-patient medication history. \\
+\addlinespace
+Hidden Markov Chains for progression modeling & Empirical (fully-observed) Markov Chain, APOE4-stratified & Transition probabilities were estimated directly from observed diagnosis sequences across longitudinal visits. No latent-state HMM training was performed, since diagnostic state is directly observed at each visit rather than hidden. \\
+\addlinespace
+Explainability Module: SHAP, Grad-CAM, Attention Maps & SHAP and Grad-CAM only & Transformer attention-weight visualization was not implemented; given the architecture fuses image and tabular features into a single token before the Transformer encoder (Section~\ref{sec3_4}), attention-map visualization would be degenerate for a sequence length of one. \\
+\addlinespace
+3D Brain Visualization (atrophy/activation maps) & 2D multi-planar Grad-CAM overlays (axial/sagittal/coronal) & The dashboard renders orthogonal slice views with heatmap overlay rather than an interactive volumetric 3D render. \\
+\addlinespace
+Ablation study & Not in the original framework diagram & Added as a substantial methodological contribution, executed in two stages across both experiments (Sections~\ref{sec5_1_8} and \ref{sec5_2_7}). \\
+\botrule
+\end{tabular}
+\end{table}
+
+The remainder of this paper is organized as follows: Section~\ref{sec2} covers
+Related Work, Section~\ref{sec3} covers Methodology (including the Digital Twin
+and end-to-end training algorithms), Section~\ref{sec4} covers Dataset and
+Description, Section~\ref{sec5} covers Experiments and Result Analysis (both the
+CPU and GPU experimental phases in full), Section~\ref{sec6} covers Discussion
+(synthesizing findings across both experiments, comparing them with
+prior work, and consolidating limitations), and Section~\ref{sec7} covers
+Conclusion and Future Work.
+
+\section{Related Work}\label{sec2}
+
+This section reviews the literature forming the foundation for the proposed Brain Digital Twin. Following the format used in the original project proposal, each study is summarized in a structured table listing its objectives, methodology and findings, and its specific contribution to this thesis. The review follows the research trajectory that motivated this work: starting with broader applications of predictive AI in medicine, narrowing to the Digital Twin paradigm, and finally focusing on state-of-the-art deep learning and explainability techniques in Alzheimer's Disease research specifically.
+
+\subsection{Predictive Modeling and Interpretability in General Medicine}\label{sec2_1}
+
+The foundation of the BDT lies in successful applications of machine learning for clinical decision support in other high-stakes domains.
+
+\begin{sidewaystable}
+\caption*{Literature review: Predictive Modeling and Interpretability in General Medicine}\label{tabRW1}
+\scriptsize
+\begin{tabular}{@{}p{0.10\textheight}p{0.17\textheight}p{0.15\textheight}p{0.27\textheight}p{0.18\textheight}@{}}
+\toprule
+\textbf{Authors / Year} & \textbf{Title} & \textbf{Objectives} & \textbf{Methodology / Findings} & \textbf{Contribution to This Thesis} \\
+\midrule
+Salaün et al., 2024 \cite{bib1} & Predicting graft and patient outcomes following kidney transplantation using interpretable ML models & Develop interpretable ML models for long-term kidney-transplant outcomes & Clinical and demographic data; applied SHAP for explainability; identified key predictors & Directly motivates this work's own use of SHAP (Section 3.6) \\
+\addlinespace
+Yoo et al., 2024 \cite{bib2} & A machine learning-driven virtual biopsy system for kidney transplant patients & Build a non-invasive ``virtual biopsy'' predictor of lesion scores & Ensemble model (XGBoost, GBM, neural network); high accuracy for biopsy prediction & Validates gradient-boosted tree ensembles as a strong tabular baseline (Section 3.8 ablation) \\
+\addlinespace
+Zhang et al., 2022 \cite{bib3} & AdaDiag: adversarial domain adaptation of diagnostic prediction with clinical event sequences & Adapt predictive models across heterogeneous clinical datasets & Domain-adversarial training; improved cross-dataset generalization & Supports the broader case for transfer learning and domain adaptation in clinical AI \\
+\addlinespace
+Awuah et al., 2023 \cite{bib4} & Recent outcomes and challenges of AI, ML, and DL in neurosurgery & Review AI/ML/DL applications in neurosurgery & Identified bias, explainability, and data limitations as recurring barriers & Reinforces the need for explainability (SHAP, Grad-CAM) and robust validation built into the BDT from the outset \\
+\addlinespace
+\botrule
+\end{tabular}
+\end{sidewaystable}
+
+\subsection{The Digital Twin Paradigm: From General Concepts to Healthcare}\label{sec2_2}
+
+Predictive models are powerful, but Digital Twins extend the paradigm by adding dynamic simulation. The following works establish the DT concept and its adaptation in healthcare.
+
+\begin{sidewaystable}
+\caption*{Literature review: The Digital Twin Paradigm, from General Concepts to Healthcare}\label{tabRW2}
+\scriptsize
+\begin{tabular}{@{}p{0.10\textheight}p{0.17\textheight}p{0.15\textheight}p{0.27\textheight}p{0.18\textheight}@{}}
+\toprule
+\textbf{Authors / Year} & \textbf{Title} & \textbf{Objectives} & \textbf{Methodology / Findings} & \textbf{Contribution to This Thesis} \\
+\midrule
+VanDerHorn \& Mahadevan, 2021 \cite{bib5} & Digital Twin: generalization, characterization and implementation & Define the DT concept across engineering domains & DT as a dynamic virtual representation with continuous physical-to-virtual data flow & Provides the foundational DT definition adapted for the BDT (Section 3.2) \\
+\addlinespace
+Venkatesh et al., 2022 \cite{bib6} & Health digital twins as tools for precision medicine & Explore Health Digital Twins for precision medicine & Integrated multimodal data; highlighted computational and regulatory challenges & Connects the DT concept to personalized medicine, a key motivation for the BDT \\
+\addlinespace
+Gaebel et al., 2021 \cite{bib7} & The Digital Twin: modular model-based approach to personalized medicine & Propose a modular DT architecture & RDF-based EHR integration; explainable and extensible & Informs a modular, stream-based design philosophy \\
+\addlinespace
+Coorey et al., 2022 \cite{bib8} & The health digital twin to tackle cardiovascular disease & Apply the DT concept to cardiovascular disease management & Simulated systemic circulation; optimized interventions & Domain-specific precedent for a simulative DT, analogous to the brain \\
+\addlinespace
+Chakshu et al., 2021 \cite{bib9} & Towards enabling a cardiovascular digital twin for human systemic circulation using inverse analysis & Build a patient-specific circulation DT & Inverse modeling from pressure signals; predicted aneurysms & Demonstrates the feasibility of a data-driven, simulative DT \\
+\addlinespace
+\botrule
+\end{tabular}
+\end{sidewaystable}
+
+\subsection{Focusing on Alzheimer's Disease: AI Classification and Early Digital Twins}\label{sec2_3}
+
+This subsection reviews AI-based AD classification and early AD-focused Digital Twin approaches directly, including the DT concept's own AD-specific precedents.
+
+\begin{sidewaystable}
+\caption*{Literature review: Focusing on Alzheimer's Disease, AI Classification and Early Digital Twins (1 of 2)}\label{tabRW3a}
+\scriptsize
+\begin{tabular}{@{}p{0.10\textheight}p{0.17\textheight}p{0.15\textheight}p{0.27\textheight}p{0.18\textheight}@{}}
+\toprule
+\textbf{Authors / Year} & \textbf{Title} & \textbf{Objectives} & \textbf{Methodology / Findings} & \textbf{Contribution to This Thesis} \\
+\midrule
+Bertolini et al., 2020 \cite{bib10} & Modeling disease progression in mild cognitive impairment and Alzheimer's Disease with digital twins & Generate synthetic ``Digital Twin'' clinical records predicting standard-of-care disease progression & Conditional Restricted Boltzmann Machines modeling MMSE/ADAS-Cog trajectories over time (ADNI and CODR-AD datasets) & Direct validation of the AD-focused, simulative DT concept this work adopts \\
+\addlinespace
+Ravi et al., 2022 \cite{bib29} & Degenerative adversarial neuroimage nets for brain scan simulations: application in ageing and dementia & Generate high-resolution, personalized synthetic MRI sequences simulating patient-specific brain atrophy & GAN-based ``4D-DANI-Net'' generating synthetic future MRI from a baseline scan (ADNI training/testing, OASIS-3 external validation); synthetic follow-up images were visually indistinguishable from real ones; uni-modal (MRI only), does not simulate clinical/cognitive scores alongside imaging & Demonstrates that visual disease-progression simulation is feasible, but, being uni-modal and disconnected from clinical scores, illustrates precisely the fragmentation this work's integrated, multimodal DT addresses (Section 2.4) \\
+\addlinespace
+Basaia et al., 2019 \cite{bib12} & Automated classification of Alzheimer's Disease and MCI using a single MRI and deep neural networks & Develop a fully automated AD/MCI classifier & 3D CNN trained on ADNI MRI; high accuracy & Validates 3D CNNs for imaging feature extraction (Section 3.4) \\
+\addlinespace
+Wen et al., 2020 \cite{bib13} & Convolutional neural networks for classification of Alzheimer's Disease: overview and reproducible evaluation & Benchmark multiple CNN architectures on ADNI & Compared architectures via the Clinica platform; established reproducibility benchmarks & Informs this work's model-selection and cross-validation practices \\
+\addlinespace
+Qiu et al., 2020 \cite{bib17} & Development and validation of an interpretable deep learning framework for AD classification & Improve interpretability of CNN-based AD classifiers & 3D CNN combined with Grad-CAM; resulting heatmaps confirmed clinical relevance of the highlighted brain regions & Directly justifies this work's use of Grad-CAM (Section 3.6) \\
+\addlinespace
+Venugopalan et al., 2021 \cite{bib16} & Multimodal deep learning models for early detection of Alzheimer's Disease stage & Fuse multimodal patient data & Combined MRI, PET, and cognitive data; multimodal fusion outperformed any single modality & Validates the multimodal integration central to the BDT's design \\
+\addlinespace
+Kushol et al., 2022 \cite{bib14} & ADDformer: Alzheimer's Disease detection from structural MRI using fusion Transformer & Design a Transformer-based AD detection model & Captured global neuroimaging relationships & Supports the Transformer component of this work's hybrid CNN-Transformer classifier \\
+\addlinespace
+Hu et al., 2023 \cite{bib15} & Conv-Swinformer: integration of CNN and shift window attention for Alzheimer's Disease classification & Combine CNN local features with Transformer global context & CNN (VGG16) texture features fed into a Swin Transformer; 93.56\% accuracy (AD vs. CN) on ADNI, externally validated at 92.31\% on OASIS & Directly supports this work's hybrid CNN-Transformer design, and demonstrates the value of external validation \\
+\addlinespace
+\botrule
+\end{tabular}
+\end{sidewaystable}
+
+\begin{sidewaystable}
+\caption*{Literature review: Focusing on Alzheimer's Disease, AI Classification and Early Digital Twins (2 of 2)}\label{tabRW3b}
+\scriptsize
+\begin{tabular}{@{}p{0.10\textheight}p{0.17\textheight}p{0.15\textheight}p{0.27\textheight}p{0.18\textheight}@{}}
+\toprule
+\textbf{Authors / Year} & \textbf{Title} & \textbf{Objectives} & \textbf{Methodology / Findings} & \textbf{Contribution to This Thesis} \\
+\midrule
+Zhou et al., 2025 \cite{bib28} & A deep learning model for early diagnosis of Alzheimer's Disease combined with 3D CNN and video Swin Transformer & Design a hybrid 3D-CNN-VideoSwinFormer model for early AD diagnosis & 3D CNN + CBAM attention + Video Swin Transformer; 92.92\% accuracy, 0.96 AUC (AD vs. CN); emphasized a fully 3D approach to avoid data leakage & Strong contemporary validation of the hybrid CNN-Transformer, 3D-first direction this work adopts; direct benchmark comparison point (Section 5.1.7) \\
+\addlinespace
+Lozupone et al., 2024 \cite{bib11} & AXIAL: attention-based explainability for interpretable Alzheimer's localized diagnosis using 2D CNNs on 3D MRI brain scans & Develop an explainable CNN model for MRI-based AD diagnosis & 2D CNNs over sliced 3D MRI (axial/coronal/sagittal), fused via soft attention; 85.6\% accuracy on ADNI, validated with Grad-CAM and 3D attention maps; limited to MRI only, no multimodal integration & Reinforces the explainability and attention-based design elements adopted here \\
+\addlinespace
+Sarkar, 2025 \cite{bib25} & Integrating machine learning and deep learning techniques for advanced Alzheimer's Disease detection through gait analysis & Explore gait analysis as a non-invasive AD biomarker & Hybrid CNN-RNN (LSTM) on wearable-sensor gait data; 93\% accuracy, 95\% AUC, outperforming traditional ML; limited dataset, no neuroimaging validation & Broadens the BDT's context to functional biomarkers beyond imaging \\
+\addlinespace
+Hechkel \& Helali, 2025 \cite{bib26} & Unveiling Alzheimer's Disease early: a comprehensive review of machine learning and imaging techniques & Provide a comprehensive review of ML and neuroimaging techniques for AD & Surveys a wide range of models; highlights CNN-Transformer hybrids as state-of-the-art & Validates this work's overall architectural and multimodal direction \\
+\addlinespace
+Aghdam et al., 2025 \cite{bib27} & Machine-learning models for Alzheimer's Disease diagnosis using neuroimaging data: survey, reproducibility, and generalizability evaluation & Examine the reproducibility and generalizability of ML models for AD & Stress-tested open-source models (2D CNN, 3D ConvLSTM) trained on ADNI and tested on OASIS; internal accuracy of 97.9\% dropped to approximately 67\% externally, revealing a severe generalizability gap & Supports this work's methodological emphasis on stratified K-fold cross-validation and on honestly reporting single-fold versus cross-validated results (Section 6.3) rather than a headline internal accuracy alone \\
+\addlinespace
+Falahati et al., 2014 \cite{bib18} & Multivariate data analysis and machine learning in Alzheimer's Disease with a focus on structural MRI & Review pre-deep-learning ML approaches in AD & Highlighted SVMs and handcrafted features & Provides a historical baseline for the evolution to deep learning \\
+\addlinespace
+Dosovitskiy et al., 2020 \cite{bib19} & An image is worth 16x16 words: Transformers for image recognition at scale & Introduce the Vision Transformer & Self-attention rivals CNNs for image modeling & Theoretical foundation for the Transformer backbone used here (Section 3.4) \\
+\addlinespace
+Selvaraju et al., 2017 \cite{bib20} & Grad-CAM: visual explanations from deep networks via gradient-based localization & Improve CNN interpretability & Introduced class-discriminative, gradient-based heatmaps & Foundational explainability method integrated directly into the BDT (Section 3.6) \\
+\addlinespace
+\botrule
+\end{tabular}
+\end{sidewaystable}
+
+\subsection{Summary and Research Gap}\label{sec2_4}
+
+The reviewed literature demonstrates a clear progression: (1) interpretable ML provides actionable, personalized clinical support across medical domains; (2) the Digital Twin paradigm, originating in engineering, enables dynamic simulation beyond static prediction; and (3) Alzheimer's Disease research has evolved from SVM-based classifiers to powerful deep learning models, with hybrid CNN-Transformer architectures representing the current state of the art, alongside explainability tools such as SHAP and Grad-CAM.
+
+\textbf{Research gap.} Current AD Digital Twin implementations are fragmented and rely on comparatively simple progression models. Some, like Bertolini et al. \cite{bib10}, simulate clinical/cognitive scores but not imaging; others, like Ravi et al. \cite{bib29} (table above), simulate imaging but not clinical scores. State-of-the-art multimodal deep learning classification methods have not, in prior work, been embedded into a single dynamic, simulative Digital Twin capable of personalized ``what-if'' intervention analysis across both modalities at once. This work addresses that gap by integrating a state-of-the-art hybrid CNN-Transformer diagnostic engine, trained jointly on imaging and clinical/genetic tabular data, with a robust, data-driven Markov simulation model for prognostic and simulative capabilities. Together these components form the Brain Digital Twin: an end-to-end, multimodal system intended to be more clinically useful than a diagnostic classifier alone.
+
+
+\section{Methodology}\label{sec3}
+
+This section presents the unified, end-to-end framework for the Brain Digital Twin. It first establishes the theoretical foundations for each component (Sections 3.1-3.3), then describes the as-built architecture, training procedure, and explainability pipeline exactly as implemented (Sections 3.4-3.7), and finally formalizes the framework as two algorithms with a complexity analysis (Section 3.8). The BDT was implemented once, as a single codebase, and executed identically (Section 5) on two compute platforms. The only differences between the two experimental runs are in compute hardware and, where explicitly noted, training hyperparameters changed in direct response to instability observed in the first run.
+
+\subsection{Problem Formulation}\label{sec3_1}
+
+Given a patient's 3D T1-weighted structural MRI volume $I \in \mathbb{R}^{D \times H \times W}$ and a vector of tabular clinical features $x \in \mathbb{R}^{4}$ (age, years of education, MMSE score, APOE4 allele count), the diagnostic task is a three-class classification problem over the label space $\mathcal{Y} = \{\text{CN}, \text{MCI}, \text{Dementia}\}$, learning a function $f_\theta(I, x) \rightarrow p(y \mid I, x)$. The prognostic task, given the classifier's current-state probability distribution $p_0 = f_\theta(I, x)$ and an empirically estimated state-transition matrix $P \in \mathbb{R}^{3 \times 3}$, is to forecast a distribution over health states at future time horizons $t = 1, \ldots, T$, optionally under a counterfactual intervention that modifies $P$.
+
+\subsection{The Digital Twin Concept}\label{sec3_2}
+
+The Digital Twin (DT) originates in industrial engineering, where it is defined as a dynamic, virtual representation of a physical asset or system that is continuously updated with real-world data. The concept relies on a bidirectional flow of information: the physical object provides data to the virtual model, and the virtual model simulates, predicts, and optimizes the behavior of the physical counterpart. In healthcare, a Health Digital Twin (HDT) is a personalized computational model of an individual patient that integrates heterogeneous data sources, such as medical imaging, biomarkers, genetics, and longitudinal clinical records, into a holistic, in-silico replica. Unlike a static predictive model, a DT emphasizes simulation: forecasting future health states and testing hypothetical interventions (e.g., a new medication) prior to real-world application. The Brain Digital Twin (BDT) instantiates this concept for Alzheimer's Disease. Each patient's data generates a personalized, explainable model capable of forecasting trajectories, testing ``what-if'' interventions, and supporting clinical decision-making.
+
+\subsection{Theoretical Foundations of the Core Components}\label{sec3_3}
+
+\textbf{3.3.1 3D Convolutional Neural Networks.} CNNs are the standard approach for computer vision and medical image analysis, automatically learning spatial hierarchies of features from grid-like data. For a 3D input volume $I$ and kernel $K$, the convolution at voxel $(x,y,z)$ is
+
+\begin{equation}
+(I * K)(x,y,z) = \sum_i \sum_j \sum_k I(x-i,\, y-j,\, z-k)\, K(i,j,k)
+\label{eq1}
+\end{equation}
+
+followed by a non-linear activation (this work uses the standard ReLU, $f(x) = \max(0, x)$, throughout the backbone) and pooling for downsampling and shift-robustness. For this work, a 3D CNN is applied to volumetric MRI data so that the model captures complex anatomical structures and spatial relationships associated with Alzheimer's progression, rather than processing 2D slices independently.
+
+\textbf{3.3.2 The Transformer Architecture and Self-Attention.} The Transformer architecture, originally designed for natural language processing, has since been adapted to computer vision. Unlike CNNs, which capture local features, Transformers use self-attention to model global dependencies. For a sequence of input vectors, each element is projected into Query ($Q$), Key ($K$), and Value ($V$) representations, and the attention scores are computed as
+
+\begin{equation}
+\mathrm{Attention}(Q, K, V) = \mathrm{softmax}\!\left(\frac{QK^{T}}{\sqrt{d_k}}\right) V
+\label{eq2}
+\end{equation}
+
+where $d_k$ is the dimension of the key vectors. Within the BDT, the Transformer encoder provides the mechanism for multimodal fusion between the imaging embedding and the tabular clinical features (Section 3.4).
+
+\textbf{3.3.3 Explainable AI (XAI).} To avoid a ``black-box'' system, two complementary explainability methods are used. SHAP (SHapley Additive exPlanations) is grounded in cooperative game theory: it explains a prediction by assigning each input feature a Shapley value representing its contribution to shifting the model's output from a baseline (average) prediction to the actual prediction, providing feature-level interpretability for the tabular branch. Grad-CAM (Gradient-weighted Class Activation Mapping) is designed for CNN-based models: for feature map $A^k$ of the target convolutional layer, the class-specific importance weight is
+
+\begin{equation}
+\alpha_k^{c} = \frac{1}{Z} \sum_i \sum_j \frac{\partial y^{c}}{\partial A_{ij}^{k}}
+\label{eq3}
+\end{equation}
+
+and the resulting localization map is
+
+\begin{equation}
+L^{c}_{\mathrm{Grad\text{-}CAM}} = \mathrm{ReLU}\!\left(\sum_k \alpha_k^{c} A^{k}\right)
+\label{eq4}
+\end{equation}
+
+which is then upsampled to the input resolution and overlaid on the original volume, producing a visual explanation of which anatomical regions drove a given prediction.
+
+\textbf{3.3.4 Markov Chains for Disease Progression.} A Markov Chain provides a stochastic framework for modeling disease progression across a discrete set of states $S = \{s_1, \ldots, s_r\}$, where transitions are governed by a probability matrix $P$, with $P_{ij}$ the probability of transitioning from $s_i$ to $s_j$, subject to $\sum_j P_{ij} = 1\;\forall i$. Using longitudinal ADNI visit data, transition probabilities between diagnostic categories (CN, MCI, Dementia) are empirically estimated directly from observed diagnosis sequences, rather than fitted as a Hidden Markov Model with latent states, since diagnostic state is directly observed at each visit (see Table~\ref{tab1}). This enables simulation of disease trajectories that complements the deep-learning classifier with an interpretable, probabilistic model of progression.
+
+\subsection{As-Built Model Architecture}\label{sec3_4}
+
+The classifier, \texttt{MultimodalTransformer} (24,012,643 parameters), combines a 3D DenseNet-121 backbone with the four tabular clinical features described in Section 3.1. The backbone is used purely as a feature extractor (\texttt{out\_channels=1024}, no classification head of its own), producing a 1024-dimensional image embedding per scan. This embedding is concatenated with the four (standardized) tabular features and projected through a linear layer, LayerNorm, and GELU activation into a fixed-width representation whose dimension is the nearest multiple of the Transformer's head count (computed via ceiling-rounded integer arithmetic, which resolves an initial dimension mismatch between the 1,028-dimensional concatenated vector and the 8-head requirement). The projected, fused representation, a single token, is passed through a 2-layer Transformer encoder (8 attention heads, pre-normalization) and a final linear classification head over the three diagnostic classes.
+
+Two implementation-level defects were identified and fixed relative to an initial draft of the architecture. First, the DenseNet-121 backbone was originally invoked in a way that both extracted features and implicitly forced a classification output, conflating feature extraction with classification. Second, a batch-squeeze operation used in average pooling collapsed the batch dimension entirely when batch size was 1, since PyTorch's \texttt{.squeeze()} removes all singleton dimensions. Both were corrected: the backbone is now a pure 1024-d feature extractor, and pooling uses \texttt{.flatten(1)} instead of an unconditional \texttt{.squeeze()}.
+
+Because the fused image-plus-tabular representation reaches the Transformer encoder as a single token (sequence length one), the Transformer's self-attention operates over a degenerate one-element sequence. This is the architectural reason, noted in Table~\ref{tab1}, that Transformer attention-map visualization was not pursued as an explainability method: attention weights over a sequence of length one carry no information to visualize.
+
+\subsection{Training Configuration}\label{sec3_5}
+
+Training uses stratified $K$-fold cross-validation ($K=5$, fixed random seed, identical splits across both experimental phases so that any given fold's held-out set is the same physical patients on CPU and GPU) with AdamW optimization and class-weighted cross-entropy loss, the class weights computed via \texttt{compute\_class\_weight('balanced')} over the full training-fold label distribution to counteract ADNI's typical MCI-heavy imbalance. The \texttt{StandardScaler} fitted to the tabular features is fitted independently inside each fold, on the training partition only, to avoid the data leakage that would result from fitting on the full dataset before splitting. The specific hyperparameters (batch size, learning-rate schedule, epoch budget, early-stopping patience, mixed precision) differ between the CPU and GPU experimental phases and are given in full, with the rationale for each change, in Section 5.
+
+\subsection{Explainability Pipeline}\label{sec3_6}
+
+SHAP is applied to the tabular branch with the imaging embedding held frozen (a full SHAP analysis over the imaging branch was found to exceed available system memory), producing per-feature attribution values for each diagnostic class. Grad-CAM is hooked on the final dense block of the DenseNet-121 backbone (\texttt{denseblock4}). Computing it requires the input tensor's gradient tracking to be explicitly re-enabled before the backward pass, since this is not the default state when running inference with an already-evaluated model. The resulting class-activation map is upsampled to the full $128^3$ volume resolution and displayed as axial, sagittal, and coronal overlays.
+
+\subsection{Markov Chain Estimation and Digital Twin Assembly}\label{sec3_7}
+
+For each patient, longitudinal visits are grouped by patient identifier and sorted chronologically by visit date. Observed state-to-state transitions (e.g., $\mathrm{CN} \rightarrow \mathrm{MCI}$) are counted across all patients and all consecutive visit pairs, and each row of the resulting count matrix is normalized to a probability distribution, yielding the full-cohort transition matrix $P$. The same procedure is repeated on the APOE4-positive and APOE4-negative subgroups independently, yielding $P^{+}$ and $P^{-}$, which enable the APOE4 ``what-if'' simulation (Objective 5).
+
+The Digital Twin itself (\texttt{NeuroDT}) combines the trained classifier $f_\theta$ with the Markov transition matrices to produce, for a given patient, a current-state diagnosis distribution and a Monte Carlo-simulated multi-year trajectory with 95\% confidence intervals, optionally under a simulated pharmacological intervention that modifies the relevant transition-matrix entries before simulation. The full procedure is given as Algorithm~\ref{algo2} (Section~\ref{sec3_8}).
+
+\subsection{Algorithm and Complexity}\label{sec3_8}
+
+\textbf{Algorithm 1} summarizes the end-to-end BDT training and evaluation pipeline exactly as implemented, unifying the ten-step framework originally proposed (data ingestion through Digital Twin assembly) with the cross-validation and checkpoint-selection procedure actually used.
+
+\begin{algorithm}
+\caption{End-to-End BDT Training and Evaluation Pipeline}\label{algo1}
+\footnotesize
+\begin{algorithmic}[1]
+\Require Raw ADNI archive (DICOM scans + \texttt{ADNIMERGE.csv}), fold count $K$, epoch budget $E$, early-stopping patience $p$
+\Ensure Trained classifier $f_\theta$, cross-validated AUC (mean $\pm$ SD), ablation results, explainability artifacts, transition matrices $\{P, P^+, P^-\}$, assembled Digital Twin
+\State $\textit{manifest} \gets \Call{Ingest}{\textit{raw\_archive}}$ \Comment{join scans to ADNIMERGE, drop incomplete rows, standardize ADNI diagnosis codes to \{CN, MCI, Dementia\}}
+\State $\textit{manifest} \gets \Call{Validate}{\textit{manifest}}$ \Comment{pydicom integrity check; drop or substitute unreadable scans}
+\For{each scan in \textit{manifest}}
+    \State $v \gets \Call{Preprocess}{\textit{scan}}$ \Comment{DICOM $\to$ RAS orient $\to$ resample 1.5mm $\to$ resize/pad/crop $128^3$ $\to$ normalize [0,1]}
+    \State \Call{Cache}{$v$} \Comment{persist as .pt tensor; avoids re-preprocessing every epoch}
+\EndFor
+\State $\textit{folds} \gets \Call{StratifiedKFold}{\textit{manifest}, K, \textit{seed}}$ \Comment{identical seed/splits reused for every downstream experiment}
+\State $\textit{fold\_results} \gets \emptyset$
+\For{$k = 1$ \textbf{to} $K$}
+    \State $\textit{scaler}_k \gets \Call{FitScaler}{\textit{train}_k.\textit{tabular}}$ \Comment{fold-local only; no leakage}
+    \State $\theta_k \gets \Call{Init}{\textit{MultimodalTransformer}}$
+    \State $\textit{best\_loss} \gets \infty$; $\textit{patience\_left} \gets p$
+    \For{$e = 1$ \textbf{to} $E$}
+        \State $\theta_k \gets \Call{TrainEpoch}{\theta_k, \textit{train}_k, \textit{scaler}_k}$ \Comment{weighted cross-entropy, AdamW, LR schedule (Section 3.5)}
+        \State $(\textit{val\_loss}, \textit{val\_AUC}) \gets \Call{Evaluate}{\theta_k, \textit{val}_k, \textit{scaler}_k}$
+        \If{$\textit{val\_loss} < \textit{best\_loss}$}
+            \State $\textit{best\_loss} \gets \textit{val\_loss}$; $\textit{patience\_left} \gets p$
+            \State \Call{SaveCheckpoint}{$\theta_k, e, \textit{val\_loss}, \textit{val\_AUC}$}
+        \Else
+            \State $\textit{patience\_left} \gets \textit{patience\_left} - 1$
+            \If{$\textit{patience\_left} = 0$}
+                \State \textbf{break} \Comment{early stopping}
+            \EndIf
+        \EndIf
+    \EndFor
+    \State $\textit{fold\_results}[k] \gets \Call{BestCheckpoint}{k}$
+\EndFor
+\State $(\mu_{\textit{AUC}}, \sigma_{\textit{AUC}}) \gets \Call{MeanStd}{\{\textit{fold\_results}[k].\textit{val\_AUC} : k = 1..K\}}$
+\State $\theta^* \gets$ checkpoint of $\arg\max_k \textit{fold\_results}[k].\textit{val\_AUC}$ \Comment{selected fold for downstream analysis}
+\State $\textit{ablation\_results} \gets \Call{RunAblationVariants}{\theta^*, \textit{folds}}$ \Comment{A0--A6, B1--B4 (Section 5.1.10)}
+\State \Call{RunSHAP}{$\theta^*$}; \Call{RunGradCAM}{$\theta^*$} \Comment{Section 3.6}
+\State $\{P, P^+, P^-\} \gets \Call{EstimateMarkov}{\textit{manifest}}$ \Comment{Section 3.7}
+\State $\textit{neuro\_dt} \gets \Call{AssembleDigitalTwin}{\theta^*, \textit{scaler}, \{P, P^+, P^-\}}$ \Comment{Algorithm \ref{algo2}}
+\State \Return $\theta^*, (\mu_{\textit{AUC}}, \sigma_{\textit{AUC}}), \textit{ablation\_results}, \textit{neuro\_dt}$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Algorithm 2} formalizes the Digital Twin's per-patient inference and simulation procedure (\texttt{predict\_patient} / \texttt{simulate\_intervention}), including the counterfactual intervention path used for the APOE4 and pharmacological ``what-if'' analyses (Section 5.2.11) and its time-varying extension used for the early-versus-late intervention-timing study (Section 5.2.12).
+
+\begin{algorithm}
+\caption{Digital Twin Patient Simulation}\label{algo2}
+\begin{algorithmic}[1]
+\Require Trained classifier $f_\theta$, fitted scaler, patient scan and tabular vector $x$, transition matrix $P$ (or time-varying list $[P_1, \ldots, P_T]$), number of years $n_{\textit{years}}$, visits per year $v$, number of Monte Carlo simulations $n_{\textit{sims}}$, optional intervention effect $\varepsilon \in [0,1)$ applied from step $s$
+\Ensure Current diagnosis distribution $p_0$, mean trajectory over $n_{\textit{years}} \cdot v$ steps, 95\% confidence interval, \textit{image\_available} flag
+\State $x' \gets \textit{scaler.transform}(x)$
+\If{cached preprocessed tensor exists for this scan}
+    \State $v_{\textit{img}} \gets \Call{LoadCachedTensor}{\textit{scan}}$; $\textit{image\_available} \gets \textbf{true}$
+\Else
+    \State $v_{\textit{img}} \gets \Call{ZeroTensor}{}$; $\textit{image\_available} \gets \textbf{false}$ \Comment{caller MUST surface a warning; never present as image-based (Section 5.2.13)}
+\EndIf
+\State $p_0 \gets \mathrm{softmax}(f_\theta(v_{\textit{img}}, x'))$ \Comment{current-state distribution}
+\If{intervention requested}
+    \For{each step $t$ with $t \geq s$}
+        \State $P_t[\textrm{MCI}, \textrm{Dementia}] \gets P_t[\textrm{MCI}, \textrm{Dementia}] \cdot (1 - \varepsilon)$ \Comment{e.g. $\varepsilon=0.30$ (Lecanemab), $\varepsilon=0.35$ (Donanemab)}
+        \State \Call{RenormalizeRow}{$P_t$, MCI} \Comment{row must still sum to 1}
+    \EndFor
+\EndIf
+\State $\textit{trajectories} \gets \textrm{zeros}(n_{\textit{sims}}, n_{\textit{years}} \cdot v + 1, |\textrm{states}|)$
+\For{$\textit{sim} = 1$ \textbf{to} $n_{\textit{sims}}$}
+    \State $\textit{state} \gets \Call{SampleCategorical}{p_0}$
+    \State $\textit{trajectories}[\textit{sim}, 0] \gets \Call{OneHot}{\textit{state}}$
+    \For{$t = 1$ \textbf{to} $n_{\textit{years}} \cdot v$}
+        \State $P_t \gets P$ if $P$ is static, else $P[t]$ \Comment{time-varying matrices support the early-vs-late study}
+        \State $\textit{state} \gets \Call{SampleCategorical}{P_t[\textit{state}, :]}$
+        \State $\textit{trajectories}[\textit{sim}, t] \gets \Call{OneHot}{\textit{state}}$
+    \EndFor
+\EndFor
+\State $\textit{mean\_traj} \gets \Call{Mean}{\textit{trajectories}, \textrm{axis}=\textit{sim}}$
+\State $\textit{ci\_95} \gets \Call{Percentile}{\textit{trajectories}, [2.5, 97.5], \textrm{axis}=\textit{sim}}$
+\State \Return $p_0, \textit{mean\_traj}, \textit{ci\_95}, \textit{image\_available}$
+\end{algorithmic}
+\end{algorithm}
+
+\textbf{Formal mathematical formulation.} Algorithm~\ref{algo2} can equivalently be expressed in closed form. The current-state diagnosis distribution is the classifier's softmax output over the three-class logits,
+
+\begin{equation}
+p_0 = \mathrm{softmax}\big(f_\theta(v_{\mathrm{img}}, x')\big), \qquad p_0 \in \Delta^2
+\label{eq5}
+\end{equation}
+
+where $\Delta^2$ denotes the probability simplex over $\mathcal{Y} = \{\mathrm{CN}, \mathrm{MCI}, \mathrm{Dementia}\}$. The baseline transition matrix $P$ (Section 3.7) is estimated by maximum likelihood directly from observed longitudinal ADNI visit sequences,
+
+\begin{equation}
+P_{ij} = \frac{\displaystyle\sum_{n=1}^{N}\sum_{t} \mathbb{1}\big[s_t^{(n)} = i,\; s_{t+1}^{(n)} = j\big]}{\displaystyle\sum_{n=1}^{N}\sum_{t} \mathbb{1}\big[s_t^{(n)} = i\big]}, \qquad i, j \in \mathcal{Y}
+\label{eq6}
+\end{equation}
+
+the ratio of observed $i \to j$ transitions to all observed transitions out of state $i$, across all $N$ patients and all consecutive visit pairs $(s_t^{(n)}, s_{t+1}^{(n)})$. A simulated intervention with effect size $\varepsilon \in [0,1)$, applied from simulation step $s$ onward, first scales down the target transition and then renormalizes the affected row so it remains a valid probability distribution:
+
+\begin{equation}
+\tilde{P}_{i,j} = \begin{cases} P_{i,j}\,(1-\varepsilon) & \text{if } i = \mathrm{MCI},\ j = \mathrm{Dementia} \\[2pt] P_{i,j} & \text{otherwise} \end{cases}, \qquad P'_{i,j} = \frac{\tilde{P}_{i,j}}{\sum_{k \in \mathcal{Y}} \tilde{P}_{i,k}}
+\label{eq7}
+\end{equation}
+
+For each Monte Carlo simulation $n = 1, \ldots, N_{\mathrm{sims}}$, the patient's state trajectory is a discrete-time Markov process seeded by the classifier's own diagnosis distribution rather than a fixed initial state,
+
+\begin{equation}
+s_0^{(n)} \sim \mathrm{Categorical}(p_0), \qquad s_t^{(n)} \sim \mathrm{Categorical}\big(P'^{(t)}_{s_{t-1}^{(n)},\,\cdot}\big), \qquad t = 1, \ldots, n_{\mathrm{years}} \cdot v
+\label{eq8}
+\end{equation}
+
+where $P'^{(t)} = P'$ for a static intervention and $P'^{(t)} = P'_t$ for the time-varying matrices used in the early-versus-late intervention-timing study (Section 5.2.12). The Digital Twin's reported output, the mean trajectory and its 95\% confidence interval at each future step, is then the Monte Carlo estimate of the probability of occupying a given state $c \in \mathcal{Y}$ at time $t$, together with its empirical percentile interval:
+
+\begin{align}
+\hat{p}_t(c) &= \frac{1}{N_{\mathrm{sims}}} \sum_{n=1}^{N_{\mathrm{sims}}} \mathbb{1}\big[s_t^{(n)} = c\big], \nonumber \\
+\mathrm{CI}_{95\%}\big(\hat{p}_t(c)\big) &= \Big[\, Q_{0.025}\big(\{\mathbb{1}[s_t^{(n)}=c]\}_{n=1}^{N_{\mathrm{sims}}}\big),\ Q_{0.975}\big(\{\mathbb{1}[s_t^{(n)}=c]\}_{n=1}^{N_{\mathrm{sims}}}\big) \,\Big] \label{eq9}
+\end{align}
+
+with $Q_\alpha$ denoting the empirical $\alpha$-quantile. As $N_{\mathrm{sims}} \to \infty$, $\hat{p}_t(c)$ converges to the exact $t$-step state-occupation probability $\big(p_0 (P')^t\big)_c$ that would result from repeated multiplication of the initial distribution by the transition matrix. The Monte Carlo formulation is used in place of this closed-form matrix power because it composes naturally with a time-varying $P'_t$ (Algorithm~\ref{algo2}, line 19) and produces the empirical confidence interval reported alongside the mean trajectory in every what-if result in Section 5.
+
+\textbf{Complexity.} Let $B$ denote batch size, $d=1024$ the image embedding dimension, and $p$ the projected fusion dimension. Per training batch, the DenseNet-121 forward/backward pass dominates cost at $O(B \cdot D \cdot H \cdot W \cdot d)$ for a volume of size $D \times H \times W = 128^3$, several orders of magnitude larger than the Transformer encoder's cost of $O(B \cdot p^2)$ over its single-token sequence. The imaging branch, not the fusion mechanism, is the computational bottleneck, consistent with the empirical training-time results reported in Section 5. For Algorithm~\ref{algo2}, each Monte Carlo simulation is $O(n_{\mathrm{years}} \cdot v)$ (a fixed number of categorical draws over a $3\times3$ matrix), so total simulation cost is $O(n_{\mathrm{sims}} \cdot n_{\mathrm{years}} \cdot v)$, independent of the classifier's cost since $p_0$ is computed once per patient rather than once per simulation. With $n_{\mathrm{sims}}=1{,}000$ and a 5-year, semi-annual-visit horizon ($n_{\mathrm{years}} \cdot v = 10$ steps), this cost is negligible next to the single forward pass through $f_\theta$ that dominates per-patient latency in practice.
+
+
+\section{Dataset and Description}\label{sec4}
+
+\subsection{The Alzheimer's Disease Neuroimaging Initiative (ADNI)}\label{sec4_1}
+
+This work is built entirely on data from the Alzheimer's Disease Neuroimaging Initiative (ADNI), a multi-site, longitudinal research study that began in 2004 with the primary goal of standardizing and validating neuroimaging and biofluid biomarkers for the early detection and tracking of Alzheimer's Disease. The study has enrolled over 2,000 unique participants across four sequential phases to date: ADNI-1 (2004-2009, $\sim$800 new enrollees; CN, MCI, and early AD, foundational biomarker validation), ADNI-GO (2009-2011, $\sim$200; early MCI, a bridging study), ADNI-2 (2011-2016, $\sim$700; CN, MCI, AD, and a new Significant Memory Concern group, focused on the earliest disease stages), and ADNI-3 (2016-2022, hundreds of participants; continued all groups and added advanced Tau PET imaging), with ADNI-4 ongoing. This work draws on the ADNI-1, ADNI-GO, ADNI-2, and ADNI-3 phases.
+
+The dataset is fundamentally multimodal, providing raw neuroimaging files and structured tabular data for each participant. The primary imaging data is raw, 3D T1-weighted MPRAGE structural MRI, sourced from the ADNI LONI Image Data Archive; each scan is provided as a directory of individual 2D DICOM slice files organized hierarchically by subject ID, imaging sequence, and acquisition date. The tabular data is provided as a series of CSV files, of which two were used in this work: \texttt{ADNIMERGE.csv}, the primary longitudinal summary file (often considered the ``Rosetta Stone'' of ADNI, merging key data points from dozens of source tables into one row per patient per visit), and \texttt{APOERES.csv} (APOE genotyping). As noted in Table~\ref{tab1}, \texttt{RECCMEDS.csv} (the concurrent medications log) was in the original proposal's data-source scope but was not integrated in the as-built system.
+
+\subsection{As-Built Cohort}\label{sec4_2}
+
+Access to ADNI was obtained through the LONI Image \& Data Archive following an institutional data-use application. The acquired dataset comprises \textbf{1,549} T1-weighted MPRAGE structural MRI scans across approximately 500 unique patients, spanning the ADNI-1, ADNI-GO, ADNI-2, and ADNI-3 phases, with three diagnostic classes: Cognitively Normal (CN, $n=469$), Mild Cognitive Impairment (MCI, $n=603$), and Dementia ($n=477$). Each scan comprises approximately 150-200 individual DICOM slice files; the raw dataset totaled approximately 33 GB.
+
+Because downloading this volume directly over a standard network connection would take days, a temporary virtual machine was provisioned in the same Azure storage-account region to make use of the intra-datacenter network backbone (roughly 100x faster than typical broadband), reducing the transfer to minutes. The retrieved DICOM archives were then uploaded to Azure Blob Storage, preserving ADNI's native hierarchical folder structure, and the temporary VM was deallocated immediately after upload.
+
+A sequence of automated data-processing jobs converted the raw uploaded archive into a clean, unified manifest linking each scan to its clinical record. \textbf{(1) Manifest construction}: parsing blob storage to extract subject and image identifiers and cross-referencing them against the clinical CSV tables. \textbf{(2) Archive extraction}: unpacking and re-uploading the raw DICOM archives in extracted form (approximately 5 hours 44 minutes). \textbf{(3) DICOM integrity validation}: loading every scan directory with \texttt{pydicom} to identify corrupted, incomplete, or unreadable files, which identified approximately 23 scan directories with unrecoverable issues (missing slices, corrupted headers, zero-byte files); each was either substituted with an alternate visit of the same subject or dropped. \textbf{(4) 3D volume validation}: downloading and assembling complete 3D volumes for a sample of scans to verify the full DICOM-to-tensor pipeline end to end. \textbf{(5) Final manifest generation}: joining the validated imaging manifest to \texttt{ADNIMERGE.csv} and \texttt{APOERES.csv} on patient identifier and visit code.
+
+Four tabular features were selected for fusion with the imaging pathway: \textbf{AGE}, the single strongest demographic predictor of dementia risk; \textbf{PTEDUCAT} (years of education), a proxy for cognitive reserve, later confirmed by SHAP analysis (Section 5.1.9) as the strongest predictor for the CN class; \textbf{MMSE} (Mini-Mental State Examination, 0-30), a direct cognitive assessment score; and \textbf{APOE4} (allele count, 0/1/2), the primary known genetic risk factor for late-onset Alzheimer's Disease.
+
+Data cleaning addressed several dataset-specific issues. Rows missing any tabular feature or a diagnosis label were dropped. ADNI's several phase-specific diagnosis codes were standardized into the three canonical classes (EMCI and LMCI mapped to MCI; SMC mapped to CN; AD mapped to Dementia). The APOE4 column's \texttt{-4} sentinel value (ADNI's missing-data code, not a real allele count) was treated as missing, removing approximately 18 scans. For subjects with multiple longitudinal visits recorded under different diagnoses, the diagnosis was matched to the specific date of the imaging session rather than defaulting to the subject's most recent visit label, to avoid attaching a scan to a diagnosis from a different point in time. The final cleaned dataset comprises the 1,549 scans described above.
+
+One feature-selection caveat, returned to in Section 5.1.10, is that MMSE functions, to a meaningful degree, as a proxy for ADNI's own diagnostic threshold criteria, since clinical diagnosis in the source data is itself partly informed by MMSE score. This is a label-leakage effect relevant to interpreting the classical-baseline ablation results.
+
+\subsection{Imaging Preprocessing}\label{sec4_3}
+
+Each validated DICOM scan was processed through a standard neuroimaging pipeline: loading, reorientation to RAS anatomical space, resampling to 1.5 mm isotropic spacing, resizing/padding to a fixed $128 \times 128 \times 128$ voxel volume, and intensity normalization to $[0,1]$ (clipped at $[0, 1500]$ Hounsfield units), with random affine augmentation applied at training time only. All 1,549 preprocessed volumes were cached to disk as PyTorch tensors (approximately 13 GB total) prior to training, avoiding repetition of this pipeline on every epoch. This preprocessing stage is purely deterministic, classical image processing; it involves no learned components. The CNN and Transformer are applied only afterward, at the modeling stage (Section 3.4), operating on the resulting normalized tensor rather than on raw DICOM data.
+
+
+\section{Experiments and Result Analysis}\label{sec5}
+
+The BDT (Section 3) was trained and evaluated across two sequential experimental phases sharing an identical codebase, architecture, dataset, and cross-validation splits (Section 3.5). The only differences between them are compute hardware and, where explicitly noted, training hyperparameters changed in direct response to instability observed in the first phase. Experiment 1 (Section 5.1) was conducted on CPU-based Azure Machine Learning compute and established the full data pipeline, the model architecture, one validated fold, and a partial ablation study. Experiment 2 (Section 5.2) was conducted on a GPU workstation and obtained a fully cross-validated result, the complete ablation study, and end-to-end validation of the Digital Twin pipeline, culminating in deployment to a production clinical dashboard.
+
+\subsection{Experiment 1: Training on CPU-Based Compute}\label{sec5_1}
+
+\subsubsection{Infrastructure}\label{sec5_1_1}
+
+Training infrastructure was provisioned on Microsoft Azure Machine Learning. An interactive compute instance (``DevBox'') and a separate compute cluster (``Workhorse''), which scaled to zero nodes when idle, were provisioned, both of specification \texttt{Standard\_E4ds\_v4} (4 cores, 32 GB RAM, 150 GB disk). The compute instance was used for interactive development and dashboard testing, while the compute cluster executed all data-ingestion and training jobs.
+
+\subsubsection{Environment}\label{sec5_1_2}
+
+A Python 3.10 environment was configured with a CPU-only PyTorch build, MONAI (medical imaging preprocessing), pydicom, scikit-learn, MLflow (experiment tracking), and the Azure SDKs for blob storage access. NumPy was explicitly pinned below version 2.0 after an initial environment build broke MONAI and pydicom compatibility under NumPy 2.x.
+
+\subsubsection{Dataset Acquisition and Ingestion}\label{sec5_1_3}
+
+Covered in full in Section 4.2.
+
+\subsubsection{Model Architecture}\label{sec5_1_4}
+
+The classifier is exactly the \texttt{MultimodalTransformer} described in Section 3.4 (24,012,643 parameters).
+
+\subsubsection{Preliminary Run and Data-Quality-Driven Overfitting}\label{sec5_1_5}
+
+Before committing to the full 5-fold, 15-epoch training run, the pipeline was first validated end to end on a fast, low-cost preliminary run (``FAST\_PROTO'' mode: 40\% of the dataset, 3 folds, 10 epochs) to confirm the architecture was learning genuine signal before the far more expensive full run was submitted.
+
+An early iteration of this preliminary run, trained on an unfiltered version of the manifest, showed classic overfitting: validation loss reached a minimum at epoch 4 (0.6986) and then increased steadily over subsequent epochs (0.7465, 0.7562), while validation accuracy plateaued at approximately 64.5\%. Inspection of the training logs traced this to a large number of \texttt{Error processing image at path...} warnings: the \texttt{try}/\texttt{except} block in the dataset loader was silently substituting a zero-valued tensor for any DICOM series it could not load, injecting label noise into training rather than surfacing the failure. This finding directly motivated the automated DICOM integrity validation step described in Section 4.2, which filters out unreadable scans before training rather than substituting a blank image for them, along with the migration of the training process from an interactive notebook to a script-based Azure ML Command Job for more stable, reproducible execution.
+
+With the cleaned data and script-based execution, the FAST\_PROTO run achieved a macro one-vs-rest validation AUC of 0.862 and 63\% overall accuracy on the three-class problem (chance level 33\%) using only 40\% of the dataset and 10 epochs (Table~\ref{tab2}). The comparatively lower MCI AUC reflects a well-documented property of the ADNI cohort rather than a defect in the pipeline: of the misclassified MCI patients, a similar number were predicted CN as were predicted Dementia, consistent with MCI's clinical role as a transitional, diagnostically ambiguous state. Benchmarked against published 3-class ADNI results, this preliminary figure was already competitive using a fraction of the available data and training budget (Table~\ref{tab3}).
+
+\begin{table}[h]
+\caption{Preliminary (FAST\_PROTO) per-class results}\label{tab2}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Class & AUC \\
+\midrule
+Dementia & 0.914 \\
+CN & 0.878 \\
+MCI & 0.698 \\
+\textbf{Macro OvR} & \textbf{0.862} \\
+\botrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\caption{Preliminary result vs. published ADNI benchmarks}\label{tab3}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Study & Reported metric \\
+\midrule
+Basaia et al. (2019) \cite{bib12}, 3D CNN & AUC $\sim$0.85 \\
+Wen et al. (2020) \cite{bib13}, CNN benchmark & AUC $\sim$0.83 \\
+Venugopalan et al. (2021) \cite{bib16}, multimodal & AUC $\sim$0.87 \\
+Zhou et al. (2025) \cite{bib28}, CNN + Swin Transformer & 92\% accuracy (2-class) \\
+This work (FAST\_PROTO, 40\% data, 10 epochs) & AUC 0.862 \\
+\botrule
+\end{tabular}
+\end{table}
+
+This preliminary run also converged quickly (validation loss stopped improving after epoch 5 of 10), an encouraging sign that motivated proceeding directly to the full run rather than further preliminary tuning. Expanding the tabular feature set beyond the four features in Section 4.2 (e.g., ADAS-Cog, CDRSB, RAVLT immediate recall, all present in \texttt{ADNIMERGE.csv}) was considered as a way to strengthen MCI disambiguation, but was not carried into the full run, to keep the tabular inputs consistent with the four clinically motivated features specified there.
+
+\subsubsection{Training Configuration}\label{sec5_1_6}
+
+Training used 5-fold stratified cross-validation, AdamW optimization (learning rate $1 \times 10^{-4}$), a batch size of 4 (constrained by available system memory), and a \texttt{CosineAnnealingLR} schedule with early stopping (patience 3 epochs) based on validation loss. Five-fold cross-validation follows standard practice in the medical-imaging literature for a dataset of this size, balancing statistical robustness against computational cost: fewer folds (e.g., three) risk higher variance in the resulting estimate, while more folds (e.g., ten) offer diminishing returns at approximately 1,500 samples. Fifteen epochs was chosen based on the convergence behavior observed in the preliminary run, which indicated the architecture converges within a comparable number of epochs on a data subset.
+
+\subsubsection{Results}\label{sec5_1_7}
+
+Training completed for only one of five folds. The remaining four folds triggered early stopping within a few epochs of their best result, caused by a sharp validation-loss spike in early training, attributed to the learning-rate schedule beginning at full magnitude with no warmup period, combined with the high per-step gradient noise inherent to a batch size of 4 on high-dimensional 3D volumetric input. Fold 4 was the only fold to train to completion (15 epochs) and was adopted as the primary model for this phase. The full training job (all five fold attempts, run as a single Azure ML Command Job, \texttt{BDT-Hybrid-Model-Training-CleanData}) ran for \textbf{1 day, 10 hours} of compute time, the great majority of which was consumed by Fold 4's complete 15-epoch run; the four early-stopped folds each contributed comparatively little wall-clock time by comparison.
+
+\begin{table}[h]
+\caption{Fold 4 classification performance (validation set, $n=310$)}\label{tab4}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Class & Precision & Recall & F1 & AUC \\
+\midrule
+CN & 0.85 & 0.86 & 0.86 & 0.957 \\
+Dementia & 0.79 & 0.82 & 0.81 & 0.936 \\
+MCI & 0.74 & 0.71 & 0.72 & 0.844 \\
+\textbf{Overall} & \textbf{0.79} & \textbf{0.80} & \textbf{0.80} & \textbf{0.912} \\
+\botrule
+\end{tabular}
+\end{table}
+
+The model produced zero misclassifications between the CN and Dementia classes, the two diagnostically furthest-apart categories, across the entire validation set (Figure 1).
+
+\textit{Figure 1. Fold 4 confusion matrix (CPU-trained model).}
+
+\subsubsection{Ablation Study: CPU-Feasible Variants}\label{sec5_1_8}
+
+Five of the eleven ablation variants planned for this work were successfully trained and evaluated on CPU compute, a genuine result of this phase rather than just a limitation: the full multimodal model (A0, reusing the existing Fold 4 checkpoint with no retraining required) and a tabular-only multilayer perceptron (A1) were evaluated alongside four classical machine-learning baselines trained directly on the four tabular features (B1 Logistic Regression, B2 SVM with an RBF kernel, B3 Random Forest, B4 Gradient Boosting).
+
+\begin{table}[h]
+\caption{CPU-feasible ablation results}\label{tab5}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Variant & AUC & F1 \\
+\midrule
+A0, Full multimodal model & 0.912 & 0.796 \\
+A1, Tabular-only MLP & 0.879 & 0.706 \\
+B1, Logistic Regression (tabular) & 0.865 & 0.707 \\
+B2, SVM, RBF kernel (tabular) & 0.871 & 0.735 \\
+B3, Random Forest (tabular) & 0.943 & 0.830 \\
+B4, Gradient Boosting (tabular) & 0.941 & 0.825 \\
+\botrule
+\end{tabular}
+\end{table}
+
+This comparison revealed that Random Forest and Gradient Boosting classifiers, trained on the four tabular features alone with no imaging input whatsoever, achieved higher raw AUC than the full multimodal model. Investigation attributed this to the MMSE label-leakage effect noted in Section 4.2: because ADNI's diagnostic labels are themselves partly derived from MMSE threshold criteria, a classifier with direct access to MMSE can reconstruct much of the label without reference to any imaging data. This is treated as a limitation of AUC as a sole comparison metric here, not as evidence that the multimodal model underperforms. Section 5.1.9 and the full model's zero-CN-Dementia-confusion result above are the more clinically meaningful comparison points. The model's contribution from imaging alone can be measured directly against the tabular-only floor: full multimodal AUC (0.912) minus tabular-only MLP AUC (0.879) gives \textbf{+0.033 AUC points} attributable to the 3D MRI pathway.
+
+The remaining five deep-learning variants (a CNN-only classifier, A2; two alternative CNN-tabular fusion designs, A3 and A4; a single-layer Transformer variant, A5; and a variant trained without class-weighted loss, A6) each require training a full 3D-CNN-based model from scratch on imaging data, at the same per-fold training cost that limited Section 5.1.7 to one completed fold. A single continuous run covering these variants was attempted on CPU-only compute. It ran for approximately \textbf{12 hours} before failing with an out-of-memory error on the 32 GB compute instance, without completing. These variants were therefore deferred to Experiment 2 (Section 5.2), where they were executed as part of a complete, independently re-run eleven-variant ablation study on GPU hardware with substantially more available memory.
+
+\textit{Figure 2. CPU-feasible ablation results, bar chart.}
+
+\subsubsection{Explainability}\label{sec5_1_9}
+
+SHAP analysis (applied to the tabular branch with the imaging embedding held frozen) identified PTEDUCAT as the strongest predictor for the CN class and AGE as the strongest predictor for the Dementia class. Gradient-based explainability (Grad-CAM, hooked on the final dense block of the CNN backbone, Section 3.6) required the input tensor's gradient tracking to be explicitly enabled before the backward pass, which was not the default behavior when running inference on an already-evaluated model. For validation patient 057\_S\_1373 (true diagnosis Dementia, correctly predicted Dementia), Grad-CAM peak activation was located at axial slice $z=86$, sagittal slice $y=43$, and coronal slice $x=87$. As shown in the corresponding figure, activation spans a broad region of the affected hemisphere rather than sharply localizing to the hippocampus. The actual localization should be read directly from the figure rather than assumed; this diffuse pattern is returned to in Section 5.2.9.
+
+\textit{Figure 3. SHAP tabular feature attribution (CPU-trained model).}
+\textit{Figure 4. Grad-CAM activation overlay, Patient 057\_S\_1373 (Dementia), CPU-trained model.}
+
+\subsubsection{Markov Chain and Digital Twin}\label{sec5_1_10}
+
+An earlier run of the Markov Chain estimation procedure (Section 3.7) surfaced a manifest-level defect: the \texttt{visit\_date} field, extracted from each scan's file path, failed to parse for every row (0/1,549 rows extracted), because the extraction function required an exact 10-character path segment while real segments concatenate date, time, and image identifier into a longer string. Since the chronological visit-ordering the transition-matrix computation depends on was therefore effectively arbitrary rather than time-ordered, a symptom surfaced directly: the resulting matrix showed APOE4-positive patients with a lower MCI-to-Dementia transition probability than APOE4-negative patients, backwards from APOE4's known role as a progression risk factor. The date-extraction function was corrected (matching on the leading 10 characters of a sufficiently long path segment rather than requiring an exact-length match) during the GPU migration (Section 5.2.2), and the fix was subsequently ported back into the CPU pipeline. The Markov Chain and Digital Twin results reported in this work (Section 5.2.10) reflect the corrected pipeline in both experimental phases.
+
+This phase's results are limited in several respects (a single completed fold, a compute-infeasible portion of the ablation study, and a manifest-level defect that blocked Markov Chain validation), discussed together with the GPU phase's own limitations in Section 6.3.
+
+\subsection{Experiment 2: Training and Full Pipeline Evaluation on GPU-Based Compute}\label{sec5_2}
+
+\subsubsection{Motivation and Experimental Setup}\label{sec5_2_1}
+
+To obtain a statistically valid cross-validated result and complete the planned ablation and prognostic-modeling work left incomplete by Experiment 1's CPU-only compute constraints (Section 5.1), the identical codebase (same architecture, same data splits, same preprocessing pipeline) was migrated to a university GPU lab workstation (NVIDIA GeForce RTX 5070 Ti, 17.1 GB VRAM), running locally rather than on Azure ML Compute. This experiment isolates the effect of the compute platform: nothing about the model, the data, or the task changes between Experiments 1 and 2, so any difference in outcome is attributable to the compute environment and the training-configuration adjustments it enabled, not to a different problem being solved.
+
+\textit{Figure 5. GPU detection / specification confirmation.}
+
+\subsubsection{Migration: Environment and Data Transfer}\label{sec5_2_2}
+
+Every Azure ML Workspace-specific dependency was removed from the pipeline so it could run as a self-contained local process, reading only from local files (the lab PC's own disk) rather than a live Azure ML workspace connection. Data (the cached tensors, model checkpoints, and clinical manifest) was transferred via Azure Blob Storage using a download utility hardened specifically for this migration: downloads write to a temporary file and are renamed to their final path only on success, so an interrupted transfer can never be mistaken for a complete one on a later run; both individual file downloads and the storage-listing operation itself retry with exponential backoff. A companion verification step then loaded every transferred tensor and checkpoint file directly, rather than only checking for file existence, to catch any corruption that completed writing but was still invalid. This confirmed all 1,549 cached tensors and all checkpoints transferred correctly.
+
+During this migration, the \texttt{visit\_date} extraction defect described in Section 5.1.10 was identified and corrected. The fix applied here is the same one later ported back into the CPU notebook.
+
+\subsubsection{Training Configuration Changes}\label{sec5_2_3}
+
+Three configuration changes were made in response to the training instability observed in Experiment 1: the learning-rate schedule was changed from \texttt{CosineAnnealingLR} to \texttt{OneCycleLR} with a 10\% warmup period, the batch size was increased from 4 to 16 (enabled by GPU memory capacity), and mixed-precision (AMP) training was enabled. Early stopping patience was also relaxed from 3 to 5 epochs.
+
+\subsubsection{Resumable Training Design}\label{sec5_2_4}
+
+Because lab PC access was not continuous, the training loop was designed to tolerate interruption at any point: each checkpoint stores the model, optimizer, learning-rate scheduler, and mixed-precision scaler state together with a completion flag, so a run can be stopped (kernel death, closing the notebook, Ctrl+C) and resumed later without restarting completed folds from scratch. A fold cut off mid-training resumes from its last saved epoch rather than epoch 1.
+
+\subsubsection{Cross-Validated Results}\label{sec5_2_5}
+
+With the revised schedule, all five folds completed training successfully, a first for this thesis, since only one of five folds completed on CPU (Section 5.1.7).
+
+\begin{table}[h]
+\caption{5-fold cross-validated results (GPU-trained model, loss-selected checkpoints)}\label{tab6}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Fold & Validation AUC \\
+\midrule
+1 & 0.8821 \\
+2 & 0.8591 \\
+3 & 0.8125 \\
+4 & 0.9511 \\
+5 & 0.8481 \\
+\textbf{Mean $\pm$ SD} & \textbf{0.8706 $\pm$ 0.0461} \\
+\botrule
+\end{tabular}
+\end{table}
+
+This is the primary result of this thesis: a genuine 5-fold cross-validated estimate, in contrast to Experiment 1's single-fold result. A direct comparison is possible on Fold 4, since both experiments used an identical stratified split (same random seed, \texttt{random\_state=42}) and therefore evaluated on the same held-out 310 patients:
+
+\begin{table}[h]
+\caption{Direct comparison on the shared Fold 4 split}\label{tab7}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & CPU (Experiment 1) & GPU (Experiment 2) \\
+\midrule
+Fold 4 AUC & 0.9120 & \textbf{0.9511} \\
+Folds completed & 1 of 5 & 5 of 5 \\
+Reported metric & Single fold & 5-fold mean: \textbf{0.8706 $\pm$ 0.0461} \\
+\botrule
+\end{tabular}
+\end{table}
+
+On this shared fold, the GPU-trained model outperforms the CPU-trained model by 0.039 AUC, attributable to the scheduler and batch-size changes above, independent of the cross-validation completeness improvement.
+
+The full 5-fold training run completed in approximately \textbf{1 hour}, a dramatic reduction from the CPU run's 1 day 10 hours (Section 5.1.7), despite the GPU run completing all five folds to their full epoch budget versus the CPU run completing only one. This reflects the combined effect of GPU-accelerated 3D convolution, the larger batch size (16 vs. 4), and mixed-precision training, rather than any change to the amount of data or number of epochs per fold.
+
+\textit{Figure 6. 5-fold training log, all folds completing.}
+
+\subsubsection{Checkpoint Selection Methodology Experiment}\label{sec5_2_6}
+
+A secondary experiment tested whether checkpoint selection based on maximum validation AUC (rather than minimum validation loss) would yield a more favorable, or simply different, result. An identical training run was performed using AUC as both the selection and early-stopping criterion, writing to separate checkpoint files so the original loss-selected run remained untouched for comparison.
+
+\begin{table}[h]
+\caption{Loss-selected vs. AUC-selected checkpoint criteria}\label{tab8}
+\begin{tabular}{@{}lll@{}}
+\toprule
+Fold & Loss-selected AUC & AUC-selected AUC \\
+\midrule
+1 & 0.8821 & 0.9439 \\
+2 & 0.8591 & 0.9398 \\
+3 & 0.8125 & 0.9265 \\
+4 & 0.9511 & 0.9451 \\
+5 & 0.8481 & 0.9342 \\
+\textbf{Mean $\pm$ SD} & \textbf{0.8706 $\pm$ 0.0461} & \textbf{0.9379 $\pm$ 0.0069} \\
+\botrule
+\end{tabular}
+\end{table}
+
+Although the AUC-selected criterion produced a higher mean score, analysis of the per-epoch training logs showed that every fold trained through all 20 available epochs without triggering early stopping, reaching training accuracies of 97-99\% by the final epochs, a clear indicator of overfitting that a loss-based criterion would have halted earlier. Because the AUC criterion also selects the checkpoint that is the argmax of a noisy metric evaluated on a validation set of only $\sim$310 samples, this method is a biased estimator of true generalization performance. The loss-selected result (0.8706 $\pm$ 0.0461) was therefore retained as the primary reported result of this thesis; this comparison is presented as a methodological contribution regarding checkpoint-selection bias rather than as a competing headline figure.
+
+This second run completed in approximately \textbf{90 minutes}, slightly longer than the loss-selected run's 1 hour, consistent with every fold training through its full 20-epoch budget here (this section's overfitting observation) rather than being cut short by early stopping as several folds were in the loss-selected run.
+
+\subsubsection{Full Ablation Study}\label{sec5_2_7}
+
+The complete eleven-variant ablation study was executed on the GPU platform as a fresh, independent run, not a continuation of Experiment 1's partial results (Section 5.1.8). It re-trained all seven deep-learning variants (including the five that were CPU-infeasible: CNN-only, two fusion designs, the single-layer Transformer, and the no-class-weighting variant) and re-fit all four classical baselines, each evaluated on the same Fold 4 data split used throughout this thesis. The full study completed in \textbf{3 hours 58 minutes}, feasible on GPU within an afternoon. The same deep-learning variants had previously been attempted on CPU-only compute (Section 5.1.8), where the run failed with an out-of-memory error after approximately 12 hours without completing. The GPU platform's larger memory and faster per-batch throughput together turned a run that had failed outright into one that finished comfortably within a single working session.
+
+\begin{table}[h]
+\caption{Full ablation study results}\label{tab9}
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Model & AUC & Accuracy & Macro F1 \\
+\midrule
+Transformer, 1 layer & 0.9563 & 0.8516 & 0.8552 \\
+CNN + Linear fusion & 0.9487 & 0.8419 & 0.8454 \\
+\textbf{Full multimodal model} & \textbf{0.9486} & 0.8516 & 0.8550 \\
+CNN-only (no tabular branch) & 0.9474 & 0.8452 & 0.8497 \\
+Random Forest (tabular) & 0.9428 & 0.8258 & 0.8298 \\
+Gradient Boosting (tabular) & 0.9407 & 0.8226 & 0.8253 \\
+CNN + MLP fusion & 0.9389 & 0.8387 & 0.8436 \\
+Full model, no class weighting & 0.9294 & 0.7839 & 0.7906 \\
+Tabular-only MLP & 0.8716 & 0.6839 & 0.6750 \\
+SVM, RBF kernel (tabular) & 0.8711 & 0.7355 & 0.7348 \\
+Logistic Regression (tabular) & 0.8649 & 0.7097 & 0.7073 \\
+\botrule
+\end{tabular}
+\end{table}
+
+As these results are single-fold (n=310) rather than cross-validated, the close scores among the top five variants (within approximately 0.01 AUC of one another) should be interpreted as within normal fold-level variance rather than a definitive architectural ranking.
+
+Two results stand out here: the near-identical scores of the CNN-only variant (0.9474) and the full multimodal model (0.9486), and the continued outperformance of classical tree-ensemble methods over the deep tabular-only branch ($\sim$0.94 vs. 0.87 AUC) on identical input features. Both are examined in Section 6.1.
+
+\textit{Figure 7. Ablation study, AUC comparison across all 11 variants.}
+\textit{Figure 8. Ablation study, per-class AUC grouped chart.}
+
+\subsubsection{Post-Training Evaluation}\label{sec5_2_8}
+
+\begin{table}[h]
+\caption{Fold 4 classification performance (validation set, n=310, GPU-trained model)}\label{tab10}
+\begin{tabular}{@{}lllll@{}}
+\toprule
+Class & Precision & Recall & F1 & AUC \\
+\midrule
+CN & 0.88 & 0.94 & 0.91 & 0.982 \\
+Dementia & 0.85 & 0.84 & 0.85 & 0.958 \\
+MCI & 0.82 & 0.78 & 0.80 & 0.913 \\
+\textbf{Overall} & \textbf{0.85} & \textbf{0.85} & \textbf{0.85} & \textbf{0.951} \\
+\botrule
+\end{tabular}
+\end{table}
+
+Every class improved over the CPU-trained model's Fold 4 result (Table~\ref{tab4}): CN AUC rose from 0.957 to 0.982, Dementia from 0.936 to 0.958, and MCI, the hardest class throughout this thesis, from 0.844 to 0.913.
+
+\textit{Figure 9. Fold 4 confusion matrix, GPU-trained model.}
+
+\subsubsection{Explainability}\label{sec5_2_9}
+
+SHAP analysis (tabular branch, frozen image embedding, same method as Section 5.1.9) was re-run against the GPU-trained checkpoint.
+
+\textit{Figure 10. SHAP tabular feature attribution, GPU-trained model.}
+
+Grad-CAM was run on the same validation patient used in the CPU section, 057\_S\_1373 (true diagnosis Dementia, correctly predicted Dementia), for direct before/after comparison of the same patient under the CPU- and GPU-trained models. Peak activation moved from (axial z=86, sagittal y=43, coronal x=87) under the CPU model to (axial z=94, sagittal y=75, coronal x=108) under the GPU model, a visibly different activation region between the two model generations for the identical patient. Grad-CAM output should not be treated as a fixed property of the patient. As with the CPU section, the actual localization (focal vs. diffuse) should be read directly off the figure before making any claim about anatomical correspondence.
+
+\textit{Figure 11. Grad-CAM activation overlay, Patient 057\_S\_1373 (Dementia), GPU-trained model.}
+
+\subsubsection{Markov Chain and Digital Twin}\label{sec5_2_10}
+
+The Markov Chain prognostic engine (Section 5.1.10's method) was re-run on this platform after the same \texttt{visit\_date} fix, against the identical 1,549-scan dataset. The resulting matrices are numerically consistent with the CPU section's corrected result, since the Markov chain is computed directly from ADNI visit history and does not depend on which model (CPU- or GPU-trained) is used for classification:
+
+\begin{table}[h]
+\caption{Markov transition matrix, full cohort}\label{tab11}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+From / To & CN & Dementia & MCI \\
+\midrule
+CN & 0.967 & 0.003 & 0.030 \\
+Dementia & 0.000 & 0.997 & 0.003 \\
+MCI & 0.002 & 0.157 & 0.841 \\
+\botrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\caption{Markov transition matrix, APOE4-positive}\label{tab12}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+From / To & CN & Dementia & MCI \\
+\midrule
+CN & 0.955 & 0.000 & 0.045 \\
+Dementia & 0.000 & 0.995 & 0.006 \\
+MCI & 0.004 & 0.184 & 0.811 \\
+\botrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\caption{Markov transition matrix, APOE4-negative}\label{tab13}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+From / To & CN & Dementia & MCI \\
+\midrule
+CN & 0.972 & 0.004 & 0.024 \\
+Dementia & 0.000 & 1.000 & 0.000 \\
+MCI & 0.000 & 0.133 & 0.867 \\
+\botrule
+\end{tabular}
+\end{table}
+
+Dementia behaves as an effectively absorbing state (self-transition probability 0.995-1.00 across all three strata), and APOE4-positive patients show a higher MCI-to-Dementia transition probability (0.184) than APOE4-negative patients (0.133), the clinically expected direction. These figures match the CPU section's corrected transition matrices (Section 5.1.10) exactly, which is itself a useful internal consistency check: two independent runs of the same fixed pipeline, on two different machines, produced identical transition matrices.
+
+\textit{Figure 12. Markov transition matrix heatmap, full cohort, GPU run.}
+
+\subsubsection{What-If Simulation}\label{sec5_2_11}
+
+The Digital Twin's what-if simulation (Section 3.7, Algorithm~\ref{algo2}) was run for validation patient 016\_S\_1149 (diagnosed MCI, APOE4-negative), the same patient examined in the CPU section's what-if result, enabling a direct before/after comparison under the two model generations.
+
+\begin{table}[h]
+\caption{What-if simulation, Patient 016\_S\_1149, 5-year Dementia probability, GPU-trained model}\label{tab14}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Scenario & P(Dementia) at Year 5 \\
+\midrule
+Baseline (APOE4-negative) & 14.5\% \\
+APOE4-positive (no treatment) & 25.2\% \\
+APOE4-positive + Lecanemab (30\%) & 12.1\% \\
+APOE4-positive + Donanemab (35\%) & 11.9\% \\
+\botrule
+\end{tabular}
+\end{table}
+
+Every simulated effect remains in the clinically expected direction (APOE4 increases risk, both treatments decrease it), matching the CPU result's pattern. The absolute risk estimates differ substantially between the two model generations, however: the CPU-trained model estimated this same patient's baseline 5-year Dementia risk at 54.9\% (Section 5.1.10), while the GPU-trained model estimates 14.5\%. This divergence is examined in Section 6.1.
+
+\textit{Figure 13. What-if simulation for Patient 016\_S\_1149: baseline, APOE4, Lecanemab, and Donanemab trajectories under the GPU-trained model.}
+
+\subsubsection{Additional Digital Twin Validation}\label{sec5_2_12}
+
+Three further checks were run to probe the Digital Twin's behavior beyond a single patient, none of which were feasible within the CPU phase's scope.
+
+\textbf{Age sensitivity.} An initial single-patient age sweep (65-85 years) produced a counter-intuitive result: predicted Dementia risk decreasing with increasing age. Rather than accept this at face value, the check was repeated across five independent MCI patients:
+
+\begin{table}[h]
+\caption{Age-sensitivity check, 5-year Dementia probability by simulated age (65-85)}\label{tab15}
+\begin{tabular}{@{}lcccccl@{}}
+\toprule
+Patient & 65 & 70 & 75 & 80 & 85 & Direction \\
+\midrule
+016\_S\_1149 & 71.3\% & 51.3\% & 29.6\% & 19.0\% & 15.3\% & decreases \\
+099\_S\_0880 & 88.8\% & 82.5\% & 77.3\% & 74.7\% & 70.1\% & decreases \\
+057\_S\_1007 & 77.5\% & 74.6\% & 79.7\% & 75.2\% & 78.7\% & increases \\
+109\_S\_1114 & 75.7\% & 75.0\% & 74.5\% & 76.9\% & 79.6\% & increases \\
+128\_S\_0167 & 100.0\% & 100.0\% & 99.1\% & 97.8\% & 95.0\% & decreases \\
+\botrule
+\end{tabular}
+\end{table}
+
+Two of five patients showed the clinically expected increasing-risk direction. This is consistent with the AGE tabular feature carrying a comparatively weak and noisy signal relative to the dominant imaging pathway, directly supported by Section 5.2.7's finding that removing the tabular branch entirely (CNN-only, 0.9474) barely changes performance versus the full model (0.9486), rather than indicating a systematic error in the simulation methodology. The direction varying by patient, rather than being uniformly wrong, is what distinguishes a noisy weak feature from a code defect.
+
+\textit{Figure 14. Age-sensitivity analysis, Patient 016\_S\_1149.}
+
+\textbf{Population subgroup comparison.} The Digital Twin was run on 10 representative patients from each diagnostic class to validate population-level behavior:
+
+\begin{table}[h]
+\caption{Mean 5-year Dementia probability by diagnostic subgroup (n=10 per group)}\label{tab16}
+\begin{tabular}{@{}ll@{}}
+\toprule
+Diagnostic group & Mean P(Dementia) at Year 5 \\
+\midrule
+CN & 26.3\% $\pm$ 18.7\% \\
+MCI & 64.4\% $\pm$ 23.3\% \\
+Dementia & 95.1\% $\pm$ 5.0\% \\
+\botrule
+\end{tabular}
+\end{table}
+
+The monotonic ordering (CN < MCI < Dementia) is the expected population-level pattern and was not explicitly enforced by the model or the simulation. It emerges from the combination of the classifier's diagnosis probabilities and the Markov transition matrix.
+
+\textit{Figure 15. Population subgroup trajectory comparison across CN, MCI, and Dementia.}
+
+\textbf{Early vs. late intervention timing.} Using time-varying transition matrices (Algorithm~\ref{algo2}, Section~\ref{sec3_8}), the same APOE4-positive MCI patient (128\_S\_0167) was simulated receiving Lecanemab starting at Year 0 versus Year 2:
+
+\begin{table}[h]
+\caption{Early vs. late intervention timing, Patient 128\_S\_0167, 5-year Dementia probability}\label{tab17}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Scenario & P(Dementia) at Year 5 \\
+\midrule
+No treatment & 97.3\% \\
+Lecanemab starting Year 2 & 96.5\% \\
+Lecanemab starting Year 0 & 95.7\% \\
+\botrule
+\end{tabular}
+\end{table}
+
+Earlier intervention produces a lower simulated risk, the clinically expected direction, though the absolute effect is modest for this particular patient because their baseline risk was already very high (97.3\%) by the time of assessment. This ceiling effect should be kept in mind rather than presenting the 1.6-percentage-point gap as a strong treatment-timing effect. This simulation is the most novel capability demonstrated in this thesis: no published static ADNI classifier can produce a time-varying intervention-timing projection, since that requires the combination of a trained classifier and a Markov progression model that neither component provides alone.
+
+\textit{Figure 16. Early vs. late intervention timing, Patient 128\_S\_0167.}
+
+\subsubsection{Clinical Dashboard Deployment}\label{sec5_2_13}
+
+The GPU-trained model and associated Markov transition matrices were integrated into a Streamlit-based clinical dashboard, containerized and deployed to Azure App Service. During this integration, three functional defects were identified and resolved prior to production release:
+
+\begin{enumerate}
+\item A checkpoint-loading incompatibility with current PyTorch versions (missing an explicit flag required because the checkpoint embeds a fitted scikit-learn scaler object, which newer PyTorch versions reject loading by default). This was the same class of defect independently re-discovered and fixed in the CPU notebook.
+\item A label-mapping orientation mismatch between the two model generations' saved checkpoint metadata, which caused inference to fail on every request against the newer checkpoint format.
+\item A silent-failure mode in which a patient with no available cached MRI scan received a full-confidence diagnostic prediction generated from a blank image tensor, with no indication to the clinician that the imaging pathway had not been used. This was resolved by explicitly tracking scan availability and surfacing an unmissable warning wherever such a prediction occurs.
+\end{enumerate}
+Following these fixes, the deployed model was validated against a genuine held-out ADNI patient record not used during any training or validation step in this thesis, correctly predicting the patient's true diagnosis with near-full confidence, with the reported risk-trajectory and genotype-effect figures matching hand-computed values derived independently from the underlying transition matrices.
+
+\textit{Figure 17. Deployed dashboard, prediction output for the held-out verification patient.}
+\textit{Figure 18. Deployed dashboard, ``About'' / model-info panel.}
+
+This phase's results also carry limitations (single-fold ablation, a weak age signal, and a large single-patient divergence from the CPU phase), discussed together with the CPU phase's own limitations in Section 6.3.
+
+
+\section{Discussion}\label{sec6}
+
+\subsection{Synthesis of Findings Across Experiments}\label{sec6_1}
+
+The two-stage ablation study (Sections 5.1.8, 5.2.7) quantified the marginal contribution of each architectural component. Its clearest finding is that the imaging pathway alone (CNN-only, AUC 0.9474) performs almost identically to the full multimodal model (AUC 0.9486), indicating that the 3D MRI pathway carries the substantial majority of the model's predictive signal in this architecture, while the tabular branch contributes comparatively little on top of it. The same pattern reappears in the age-sensitivity check (Section 5.2.12), where the AGE feature's weak, direction-inconsistent effect is consistent with a tabular pathway that plays a secondary role. A second, related finding is that classical tree-ensemble methods (Random Forest, Gradient Boosting) consistently outperformed the deep tabular-only branch on identical features, in both the CPU ablation (Section 5.1.8) and the full GPU ablation (Section 5.2.7). This is not read as an argument that classical methods should replace the multimodal deep model. It traces instead to the MMSE label-leakage effect noted in Section 4.2: because ADNI's diagnostic labels are themselves partly derived from MMSE threshold criteria, any classifier with direct access to MMSE can reconstruct much of the label from that single feature, which inflates AUC for tabular-only models without indicating better real-world clinical value. This is also why the full multimodal model's zero-CN-Dementia-confusion result (Section 5.1.7) is treated as a more clinically meaningful comparison point than AUC alone.
+
+The controlled CPU-versus-GPU comparison (Section 5.1 versus Section 5.2), run on the identical codebase and data splits, isolates what compute-platform migration does and does not change. It removed two hard constraints of CPU-only compute: a 12-hour out-of-memory failure on the full ablation study, and only one of five cross-validation folds completing due to training instability. On the shared Fold 4 split, the GPU-trained model also scored 0.039 AUC higher (0.9511 vs. 0.9120), attributable to the revised learning-rate schedule and larger batch size rather than to the platform itself. At the same time, the Markov Chain component, computed directly from ADNI visit history rather than from either trained model, produced numerically identical transition matrices on both platforms (Tables~\ref{tab6}-\ref{tab8} vs. Tables~\ref{tab11}-\ref{tab13}). This is a useful internal consistency check: two independent runs of the same fixed pipeline, on two different machines, agree exactly where the underlying computation does not depend on the classifier.
+
+Where the two platforms diverge sharply is in the single-patient what-if result for patient 016\_S\_1149 (Section 5.2.11): the CPU-trained model estimated a 54.9\% baseline five-year Dementia risk, while the GPU-trained model estimated 14.5\% for the identical patient. Because the GPU-trained model is the more accurate of the two by every cross-validated metric in this thesis (Table~\ref{tab7}), its estimate is the more trustworthy one, but a five-fold difference in a single patient's headline number between two versions of the same pipeline is a useful reminder that single-patient case studies demonstrate the Digital Twin's capability, not its robustness. The population-level subgroup comparison (Table~\ref{tab16}), which shows the expected monotonic CN < MCI < Dementia ordering, is the more defensible evidence for robustness.
+
+\subsection{Comparison with Prior Work}\label{sec6_2}
+
+The GPU-trained model's per-class AUC (0.982 CN, 0.958 Dementia, 0.913 MCI; Table~\ref{tab10}) and its 5-fold cross-validated mean of 0.8706 $\pm$ 0.0461 (Table~\ref{tab6}) can be set against the published 3-class ADNI benchmarks introduced in Section 2.3 and Table~\ref{tab3}. Basaia et al. \cite{bib12} reported approximately 0.85 AUC with a single-modality 3D CNN; Wen et al. \cite{bib13} reported approximately 0.83 with a benchmarked CNN; and Venugopalan et al. \cite{bib16} reported approximately 0.87 with a multimodal model. The BDT's cross-validated mean sits within this range, and its best fold (0.9511) and per-class AUCs exceed it, consistent with the hybrid CNN-Transformer direction that Hu et al. \cite{bib15} and Zhou et al. \cite{bib28} also report improving on CNN-only baselines (93.56\% and 92.92\% 2-class accuracy respectively). This comparison should be read with two caveats already established in this thesis. First, most published benchmarks report a single train/test split or a single fold rather than a 5-fold cross-validated mean, so the comparison in Table~\ref{tab3} is necessarily approximate. Second, per Aghdam et al. \cite{bib27}'s finding of a severe internal-to-external generalizability gap (97.9\% dropping to approximately 67\%) in comparable AD models, none of these figures, including this thesis's own, should be read as evidence of generalization beyond the ADNI cohort itself without external validation (Section 6.3).
+
+On the Digital Twin side, this thesis's early-versus-late intervention-timing simulation (Section 5.2.12) and its time-varying, intervention-aware Monte Carlo simulation (Algorithm~\ref{algo2}) extend beyond the progression-modeling approaches surveyed in Sections 2.2 and 2.3. Bertolini et al. \cite{bib10} simulate clinical and cognitive score trajectories but not imaging, while Ravi et al. \cite{bib29} simulate MRI trajectories but not clinical scores. The BDT's classifier is trained jointly on both modalities and feeds a single Monte Carlo simulation, closing the specific fragmentation gap identified in Section 2.4.
+
+\subsection{Limitations}\label{sec6_3}
+
+Several limitations qualify the results in this thesis, spanning both experimental phases and the framework as a whole.
+
+\textbf{Cross-validation completeness.} Only one of five CPU cross-validation folds completed (Section 5.1.7), so the CPU-phase AUC of 0.912 is a single-fold result rather than a statistically robust estimate. The GPU phase resolves this with a genuine 5-fold mean of 0.8706 $\pm$ 0.0461 (Table~\ref{tab6}), the primary reported result of this thesis, but the full ablation study (Table~\ref{tab9}) remains single-fold (n=310) even on GPU, so the close ranking among its top five variants should not be read as a definitive architectural conclusion.
+
+\textbf{Compute-constrained scope on CPU.} The six deep-learning ablation variants requiring fresh 3D-CNN training (Section 5.1.8) were computationally infeasible on CPU-only compute, failing with an out-of-memory error after approximately 12 hours rather than completing slowly. The manifest-level \texttt{visit\_date} parsing defect (Section 5.1.10) also meant the Markov Chain and Digital Twin components could not be validated on CPU in that phase, although the defect was identified and corrected before Experiment 2, and both phases' corrected results agree exactly (Section 6.1).
+
+\textbf{Label leakage in the tabular baseline comparison.} The MMSE feature carries a partial label-leakage relationship with the ADNI diagnostic labels themselves (Section 4.2), since clinical diagnosis in the source data is itself partly informed by MMSE score. This should temper any claim that the classical-baseline ablation comparison (Section 6.1) reflects a fair, leakage-free benchmark, and is a property of the source data rather than of this work's modeling choices.
+
+\textbf{Weak and inconsistent age signal.} The AGE tabular feature showed a weak, direction-inconsistent signal in the age-sensitivity check (Section 5.2.12; two of five patients showed the clinically expected increasing-risk direction). This is consistent with the imaging pathway dominating the model's predictive signal (Section 6.1) rather than indicating a code defect, but it limits how much clinical weight the age-sensitivity capability can currently be given, until a larger patient sample or an additional cognitive-score feature (e.g., ADAS-Cog, CDRSB) strengthens that pathway.
+
+\textbf{Single-patient case studies are not a robustness demonstration.} The what-if simulation's large absolute divergence between the CPU- and GPU-trained models for the same patient (54.9\% vs. 14.5\% five-year Dementia probability, Section 5.2.11) is a reminder that a single-patient case study demonstrates the Digital Twin's capability, not its robustness. The population-level subgroup validation (Table~\ref{tab16}) is the more defensible evidence for the latter.
+
+\textbf{No external validation.} All results in this thesis are derived from ADNI, a single, if large and well-established, research cohort. Aghdam et al. \cite{bib27} report that comparable AD models can lose most of their accuracy on an external dataset (Section 6.2); this thesis has not yet tested the BDT against an independent cohort, so its generalization beyond ADNI's population and acquisition protocols is untested (Section 7.2).
+
+\textbf{Deviations from the proposed framework.} Table~\ref{tab1} documents five specific deviations between the originally proposed framework and the as-built system. Most significantly, a fully-observed empirical Markov Chain was substituted for the originally proposed Hidden Markov Model, justified by the fact that diagnostic state is directly observed at each ADNI visit rather than hidden, and Transformer attention-map visualization was omitted, since it would be architecturally degenerate given the single-token fusion design (Section 3.4).
+
+
+\section{Conclusion and Future Work}\label{sec7}
+
+\subsection{Summary of Contributions}\label{sec7_1}
+
+This work set out to design, implement, and validate a Brain Digital Twin (BDT) for Alzheimer's Disease: a system that moves beyond static diagnostic classification to personalized, simulative ``what-if'' forecasting, motivated directly by the clinical demands of the new generation of disease-modifying therapies. All five objectives stated in Section 1.3 were addressed. A unified multimodal ingestion pipeline was built and validated end to end against 1,549 ADNI T1-weighted MRI scans and four tabular clinical features (Section 4). A hybrid 3D DenseNet-121 CNN and Transformer classifier was implemented, trained, and cross-validated, reaching a primary 5-fold cross-validated AUC of 0.8706 $\pm$ 0.0461, with per-class AUC reaching 0.982 (CN), 0.958 (Dementia), and 0.913 (MCI) on the shared Fold 4 evaluation split (Section 5.2.8). An empirically estimated, APOE4-stratified Markov Chain progression model was built directly from observed ADNI visit histories and assembled with the classifier into a working Digital Twin capable of Monte Carlo trajectory simulation, intervention modeling, and time-varying intervention-timing analysis (Sections 3.7-3.8, 5.2.11-5.2.12). Multi-level explainability, SHAP for the tabular pathway and Grad-CAM for the imaging pathway, was integrated throughout and supports the framework's clinical interpretability (Sections 5.1.9, 5.2.9). Finally, ``what-if'' simulation was demonstrated at the individual-patient level (genetic risk and pharmacological intervention scenarios), the population level (diagnostic subgroup comparison), and, uniquely, at the intervention-timing level: an early-versus-late treatment-timing simulation that, to this thesis's knowledge, no published static ADNI classifier is capable of producing, since it requires the combination of a trained diagnostic model and a temporal progression model that neither component provides alone (Section 5.2.12).
+
+Beyond the originally proposed scope (Section 1.3), the eleven-variant ablation study and the controlled CPU-versus-GPU comparison, discussed in full in Section 6.1, further strengthen these results: they quantify each architectural component's contribution and isolate exactly what compute-platform migration changes and does not change about the resulting model. Section 6.3 consolidates this thesis's limitations, and the honest divergences and caveats surfaced along the way, into a single account.
+
+\subsection{Future Work}\label{sec7_2}
+
+Several directions extend directly from the as-built system's current scope, drawing on both this work's own findings and the interactive-deployment and integration phases envisioned in the original project proposal (Sections 7.8-7.9 of the proposal) but not yet realized.
+
+\textbf{Interactive clinical visualization.} The current dashboard (Section 5.2.13) renders 2D multi-planar Grad-CAM overlays. The originally proposed interactive 3D brain visualization of atrophy and activation maps, allowing a clinician to rotate and explore a volumetric render rather than fixed orthogonal slices, remains future work.
+
+\textbf{Richer medication and intervention modeling.} RECCMEDS.csv, ADNI's concurrent medications log, was not integrated in the as-built system (Table~\ref{tab1}); the current intervention simulation instead applies fixed, literature-informed effect sizes (Lecanemab 30\%, Donanemab 35\% reduction in MCI-to-Dementia transition probability) uniformly across patients. Integrating per-patient medication history would allow the Digital Twin to model a patient's actual treatment record rather than a hypothetical uniform intervention, and would strengthen the intervention-timing simulation demonstrated in Section 5.2.12 into a validated, data-grounded capability.
+
+\textbf{Strengthening the age and demographic pathway.} Given the weak, direction-inconsistent age-sensitivity signal observed in Section 5.2.12, incorporating an additional cognitive-trajectory feature (e.g., ADAS-Cog or CDRSB, both available in ADNIMERGE.csv but not used in the as-built four-feature tabular branch) may sharpen the model's sensitivity to demographic and cognitive-trend risk factors beyond the diagnostic-imaging signal that currently dominates.
+
+\textbf{EHR integration and continuous learning.} The original proposal's integration and automation phase (Section 7.9 of the proposal) envisioned connecting the BDT to live Electronic Health Record systems via a standardized interface such as HL7 FHIR, and establishing a continuous-learning feedback loop in which new patient visits automatically refine the Markov transition estimates and, on a periodic retraining cycle, the classifier itself. Realizing this would require production MLOps practices not yet built for this system: versioned model registries, a shadow-mode deployment stage for validating a retrained model against live data before promoting it to serve predictions, and drift monitoring on both the imaging and tabular input distributions.
+
+\textbf{Broader external validation.} All results in this thesis are derived from ADNI, a single, if large and well-established, research cohort. Validating the trained classifier and the Markov progression model against an independent cohort, and against ADNI's own newer ADNI-4 phase as it becomes available, would test generalization beyond the specific population and acquisition protocols represented in the ADNI-1 through ADNI-3 data used here.
+
+Taken together, the Brain Digital Twin developed and validated across these two experimental phases establishes a working, end-to-end, and clinically interpretable simulative alternative to static Alzheimer's Disease classifiers, with a clear and concrete path from its current research-validated state toward the interactive, continuously learning clinical deployment envisioned at the outset of this project.
+
+\backmatter
+
+\bmhead{Acknowledgements}
+
+The author gratefully acknowledges the Arab Academy for Science, Technology and Maritime Transport (AASTMT), Sheraton Branch, Cairo, Egypt, for providing the laboratory facilities and the GPU-equipped workstation used to conduct the GPU-based training and validation experiments (Section~\ref{sec5_2}) reported in this thesis. The author also thanks his supervisors, Prof. Fahima Maghraby and Assoc. Prof. Ahmed Salem, for their guidance and supervision throughout the design, implementation, and evaluation of this work. Data used in the preparation of this work were obtained from the Alzheimer's Disease Neuroimaging Initiative (ADNI) database.
+
+\section*{Declarations}
+
+%% The statements below are standard, low-risk boilerplate inferred from
+%% common practice for ADNI-based academic work. Please review and edit
+%% each one before submission -- they are not verified facts about your
+%% specific funding, ethics-board, or data-sharing situation.
+
+\noindent\textbf{Funding.} Not applicable; this work was conducted as part of an academic thesis with no external grant funding declared.
+
+\noindent\textbf{Conflict of interest/Competing interests.} The authors declare no competing interests.
+
+\noindent\textbf{Ethics approval and consent to participate.} This work performed no new experiments on human participants and involved secondary analysis of de-identified data from the Alzheimer's Disease Neuroimaging Initiative (ADNI). Ethical approval and informed consent from participants were obtained by ADNI's constituent institutions at the time of original data collection.
+
+\noindent\textbf{Consent for publication.} Not applicable.
+
+\noindent\textbf{Data availability.} The imaging and clinical data that support the findings of this study are available from the ADNI database (\url{https://adni.loni.usc.edu}) but restrictions apply to their redistribution; they were used under ADNI's standard data-use agreement for this study and are not publicly redistributed by the authors. Qualified researchers may apply for access directly via ADNI.
+
+\noindent\textbf{Materials availability.} Not applicable.
+
+\noindent\textbf{Code availability.} Available from the corresponding author upon reasonable request.
+
+\noindent\textbf{Author contribution.} S.H. designed the study, implemented the Brain Digital Twin framework, conducted all experiments, and wrote the manuscript. F.M. and A.S. supervised the work and reviewed the manuscript.
+
+\begin{thebibliography}{99}
+
+\bibitem{bib1} A. Salaün, S. Knight, L. Wingfield, and T. Zhu, ``Predicting graft and patient outcomes following kidney transplantation using interpretable machine learning models,'' \textit{Scientific Reports}, vol. 14, 17356, 2024. Available: \url{https://doi.org/10.1038/s41598-024-66976-0}
+
+\bibitem{bib2} D. Yoo, G. Divard, M. Raynaud, et al., ``A machine learning-driven virtual biopsy system for kidney transplant patients,'' \textit{Nature Communications}, vol. 15, 554, 2024. Available: \url{https://doi.org/10.1038/s41467-023-44595-z}
+
+\bibitem{bib3} T. Zhang, M. Chen, and A. A. T. Bui, ``AdaDiag: Adversarial domain adaptation of diagnostic prediction with clinical event sequences,'' \textit{Journal of Biomedical Informatics}, vol. 134, Oct. 2022. Available: \url{https://doi.org/10.1016/j.jbi.2022.104168}
+
+\bibitem{bib4} W. A. Awuah, F. T. Adebusoye, J. Wellington, L. David, A. Salam, A. L. W. Yee, E. Lansiaux, R. Yarlagadda, T. Garg, T. Abdul-Rahman, J. Kalmanovich, G. D. Miteu, M. Kundu, and I. N. Mykolaivna, ``Recent outcomes and challenges of artificial intelligence, machine learning, and deep learning in neurosurgery,'' \textit{Frontiers in Neuroscience}, vol. 17, no. 1023456, 2023. Available: \url{https://doi.org/10.1016/j.wnsx.2024.100301}
+
+\bibitem{bib5} E. VanDerHorn and S. Mahadevan, ``Digital Twin: Generalization, characterization and implementation,'' \textit{Computers in Industry}, vol. 123, 2021. Available: \url{https://doi.org/10.1016/j.dss.2021.113524}
+
+\bibitem{bib6} K. P. Venkatesh, M. M. Raza, and J. C. Kvedar, ``Health digital twins as tools for precision medicine: Considerations for computation, implementation, and regulation,'' \textit{npj Digital Medicine}, vol. 5, 150, 2022. Available: \url{https://doi.org/10.1038/s41746-022-00694-7}
+
+\bibitem{bib7} J. Gaebel, J. Keller, D. Schneider, A. Lindenmeyer, T. Neumuth, and S. Franke, ``The Digital Twin: Modular Model-Based Approach to Personalized Medicine,'' \textit{Current Directions in Biomedical Engineering}, vol. 7, no. 2, pp. 223-226, 2021. Available: \url{https://doi.org/10.1515/cdbme-2021-2057}
+
+\bibitem{bib8} G. Coorey, G. A. Figtree, D. F. Fletcher, et al., ``The health digital twin to tackle cardiovascular disease: A review of an emerging interdisciplinary field,'' \textit{npj Digital Medicine}, vol. 5, no. 126, 2022. Available: \url{https://doi.org/10.1038/s41746-022-00640-7}
+
+\bibitem{bib9} N. K. Chakshu, I. Sazonov, and P. Nithiarasu, ``Towards enabling a cardiovascular digital twin for human systemic circulation using inverse analysis,'' \textit{Biomechanics and Modeling in Mechanobiology}, vol. 20, pp. 449-465, 2021. Available: \url{https://doi.org/10.1007/s10237-020-01393-6}
+
+\bibitem{bib10} D. Bertolini, A. D. Loukianov, A. M. Smith, D. Li-Bland, Y. Pouliot, J. R. Walsh, and C. K. Fisher, ``Modeling disease progression in mild cognitive impairment and Alzheimer's disease with digital twins,'' \textit{arXiv preprint arXiv:2012.13455}, 2020. Available: \url{https://doi.org/10.48550/arXiv.2012.13455}
+
+\bibitem{bib11} G. Lozupone, A. Bria, F. Fontanella, F. J. A. Meijer, and C. De Stefano, ``AXIAL: Attention-based eXplainability for Interpretable Alzheimer's Localized Diagnosis using 2D CNNs on 3D MRI brain scans,'' \textit{arXiv preprint arXiv:2407.02418}, 2024. Available: \url{https://doi.org/10.48550/arXiv.2407.02418}
+
+\bibitem{bib12} S. Basaia, F. Agosta, L. Wagner, E. Canu, G. Magnani, R. Santangelo, and M. Filippi, ``Automated classification of Alzheimer's disease and mild cognitive impairment using a single MRI and deep neural networks,'' \textit{NeuroImage: Clinical}, vol. 21, 101645, 2019. Available: \url{https://doi.org/10.1016/j.nicl.2018.101645}
+
+\bibitem{bib13} J. Wen, E. Thibeau-Sutre, M. Diaz-Melo, J. Samper-González, A. Routier, S. Bottani, D. Dormont, S. Durrleman, N. Burgos, and O. Colliot, ``Convolutional neural networks for classification of Alzheimer's disease: Overview and reproducible evaluation,'' \textit{Medical Image Analysis}, vol. 63, 101694, 2020. Available: \url{https://doi.org/10.1016/j.media.2020.101694}
+
+\bibitem{bib14} R. Kushol, A. Masoumzadeh, D. Huo, S. Kalra, and Y.-H. Yang, ``ADDformer: Alzheimer's Disease Detection from Structural MRI Using Fusion Transformer,'' in \textit{2022 IEEE 19th International Symposium on Biomedical Imaging (ISBI)}, Kolkata, India, 2022, pp. 1-5. doi: \url{10.1109/ISBI52829.2022.9761421}
+
+\bibitem{bib15} Z. Hu, Y. Li, Z. Wang, S. Zhang, W. Hou, and the Alzheimer's Disease Neuroimaging Initiative, ``Conv-Swinformer: Integration of CNN and shift window attention for Alzheimer's disease classification,'' \textit{Computers in Biology and Medicine}, vol. 159, 107304, 2023. Available: \url{https://doi.org/10.1016/j.compbiomed.2023.107304}
+
+\bibitem{bib16} J. Venugopalan, L. Tong, H. R. Hassanzadeh, et al., ``Multimodal deep learning models for early detection of Alzheimer's disease stage,'' \textit{Scientific Reports}, vol. 11, 3254, 2021. Available: \url{https://doi.org/10.1038/s41598-020-74399-w}
+
+\bibitem{bib17} S. Qiu, P. S. Joshi, M. I. Miller, C. Xue, X. Zhou, C. Karjadi, G. H. Chang, A. S. Joshi, B. Dwyer, S. Zhu, M. Kaku, Y. Zhou, Y. J. Alderazi, A. Swaminathan, S. Kedar, M.-H. Saint-Hilaire, S. H. Auerbach, J. Yuan, E. A. Sartor, R. Au, and V. B. Kolachalama, ``Development and validation of an interpretable deep learning framework for Alzheimer's disease classification,'' \textit{Brain}, vol. 143, no. 6, pp. 1920-1933, Jun. 2020. Available: \url{https://doi.org/10.1093/brain/awaa137}
+
+\bibitem{bib18} F. Falahati, E. Westman, and A. Simmons, ``Multivariate data analysis and machine learning in Alzheimer's disease with a focus on structural magnetic resonance imaging,'' \textit{Journal of Alzheimer's Disease}, vol. 41, no. 3, pp. 685-708, 2014. Available: \url{https://doi.org/10.3233/JAD-131928}
+
+\bibitem{bib19} A. Dosovitskiy, L. Beyer, A. Kolesnikov, D. Weissenborn, X. Zhai, T. Unterthiner, M. Dehghani, M. Minderer, G. Heigold, S. Gelly, J. Uszkoreit, and N. Houlsby, ``An image is worth 16x16 words: Transformers for image recognition at scale,'' \textit{arXiv preprint arXiv:2010.11929}, 2020. Available: \url{https://arxiv.org/abs/2010.11929}
+
+\bibitem{bib20} R. R. Selvaraju, M. Cogswell, A. Das, R. Vedantam, D. Parikh, and D. Batra, ``Grad-CAM: Visual explanations from deep networks via gradient-based localization,'' in \textit{2017 IEEE International Conference on Computer Vision (ICCV)}, Venice, Italy, 2017, pp. 618-626. Available: \url{https://doi.org/10.1109/ICCV.2017.74}
+
+\bibitem{bib21} World Health Organization, ``Dementia: Key Facts,'' 2023. Available: \url{https://www.who.int/news-room/fact-sheets/detail/dementia}
+
+\bibitem{bib22} GBD 2019 Dementia Forecasting Collaborators, ``Estimation of the global prevalence of dementia in 2019 and forecasted prevalence in 2050: an analysis for the Global Burden of Disease Study 2019,'' \textit{The Lancet Public Health}, vol. 7, no. 2, pp. e105-e125, 2022. Available: \url{https://doi.org/10.1016/S2468-2667(21)00249-8}
+
+\bibitem{bib23} National Institute on Aging, ``How Is Alzheimer's Disease Treated?,'' 2021. Available: \url{https://www.nia.nih.gov/health/alzheimers-disease/how-alzheimers-disease-treated}
+
+\bibitem{bib24} C. H. van Dyck, S. Swanson, R. A. Aisen, et al., ``Lecanemab in Early Alzheimer's Disease,'' \textit{The New England Journal of Medicine}, vol. 388, no. 1, pp. 9-21, 2023. Available: \url{https://doi.org/10.1056/NEJMoa2212948}
+
+\bibitem{bib25} M. Sarkar, ``Integrating Machine Learning and Deep Learning Techniques for Advanced Alzheimer's Disease Detection through Gait Analysis,'' \textit{Journal of Business and Management Studies}, vol. 7, no. 1, pp. 140-147, 2025. Available: \url{https://doi.org/10.32996/jbms.2025.7.1.8}
+
+\bibitem{bib26} W. Hechkel and A. Helali, ``Unveiling Alzheimer's Disease Early: A Comprehensive Review of Machine Learning and Imaging Techniques,'' \textit{Archives of Computational Methods in Engineering}, vol. 32, pp. 471-484, 2025. Available: \url{https://doi.org/10.1007/s11831-024-10179-3}
+
+\bibitem{bib27} M. A. Aghdam, S. Bozdag, F. Saeed, et al., ``Machine-learning Models for Alzheimer's Disease Diagnosis Using Neuroimaging Data: Survey, Reproducibility, and Generalizability Evaluation,'' \textit{Brain Informatics}, vol. 12, no. 8, 2025. Available: \url{https://doi.org/10.1186/s40708-025-00252-3}
+
+\bibitem{bib28} J. Zhou, Y. Wei, X. Li, et al., ``A deep learning model for early diagnosis of Alzheimer's disease combined with 3D CNN and video Swin transformer,'' \textit{Scientific Reports}, vol. 15, no. 23311, 2025. Available: \url{https://doi.org/10.1038/s41598-025-05568-y}
+
+\bibitem{bib29} D. Ravi, S. B. Blumberg, S. Ingala, F. Barkhof, D. C. Alexander, N. P. Oxtoby, and the Alzheimer's Disease Neuroimaging Initiative, ``Degenerative adversarial neuroimage nets for brain scan simulations: Application in ageing and dementia,'' \textit{Medical Image Analysis}, vol. 75, 102257, 2022. Available: \url{https://doi.org/10.1016/j.media.2021.102257}
+
+\end{thebibliography}
+
+\end{document}
