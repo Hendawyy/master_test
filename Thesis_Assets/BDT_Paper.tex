@@ -206,6 +206,22 @@ resulting model. Table~\ref{tab1} summarizes where the as-built system departs
 from the originally proposed framework, for full transparency in the
 results that follow.
 
+Figure~\ref{fig:framework_proposed} shows the Digital Twin framework as originally proposed at the project-proposal stage, and Figure~\ref{fig:framework_updated} shows the as-built architecture reflecting the deviations listed in Table~\ref{tab1}.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_framework_proposed.png}
+\caption{Neuro-DT framework as originally proposed.}
+\label{fig:framework_proposed}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_framework_updated.png}
+\caption{As-built Neuro-DT framework architecture, reflecting the deviations summarized in Table~\ref{tab1}.}
+\label{fig:framework_updated}
+\end{figure}
+
+
 \begin{table}[h]
 \caption{Implementation deviations from the proposed framework}\label{tab1}
 \begin{tabular}{@{}p{0.24\textwidth}p{0.24\textwidth}p{0.42\textwidth}@{}}
@@ -565,6 +581,46 @@ Because downloading this volume directly over a standard network connection woul
 
 A sequence of automated data-processing jobs converted the raw uploaded archive into a clean, unified manifest linking each scan to its clinical record. \textbf{(1) Manifest construction}: parsing blob storage to extract subject and image identifiers and cross-referencing them against the clinical CSV tables. \textbf{(2) Archive extraction}: unpacking and re-uploading the raw DICOM archives in extracted form (approximately 5 hours 44 minutes). \textbf{(3) DICOM integrity validation}: loading every scan directory with \texttt{pydicom} to identify corrupted, incomplete, or unreadable files, which identified approximately 23 scan directories with unrecoverable issues (missing slices, corrupted headers, zero-byte files); each was either substituted with an alternate visit of the same subject or dropped. \textbf{(4) 3D volume validation}: downloading and assembling complete 3D volumes for a sample of scans to verify the full DICOM-to-tensor pipeline end to end. \textbf{(5) Final manifest generation}: joining the validated imaging manifest to \texttt{ADNIMERGE.csv} and \texttt{APOERES.csv} on patient identifier and visit code.
 
+Figures~\ref{fig:data_ingestion_job}-\ref{fig:final_manifest_sample} document these pipeline stages as run.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_data_ingestion_job.png}
+\caption{Data-ingestion job (pipeline stage 1, manifest construction).}
+\label{fig:data_ingestion_job}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_data_ingestion_output.png}
+\caption{Sample output of the data-ingestion job, the joined dataframe linking scans to clinical records.}
+\label{fig:data_ingestion_output}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_archive_extraction_job.png}
+\caption{Archive-extraction job (pipeline stage 2).}
+\label{fig:archive_extraction_job}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_dicom_validation.png}
+\caption{DICOM integrity validation log (pipeline stage 3).}
+\label{fig:dicom_validation}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_3d_volume_validation.png}
+\caption{Reconstructed 3D MRI slices used to validate the DICOM-to-tensor pipeline end to end (pipeline stage 4).}
+\label{fig:3d_volume_validation}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_final_manifest_sample.png}
+\caption{Sample of the final joined manifest (pipeline stage 5).}
+\label{fig:final_manifest_sample}
+\end{figure}
+
+
 Four tabular features were selected for fusion with the imaging pathway: \textbf{AGE}, the single strongest demographic predictor of dementia risk; \textbf{PTEDUCAT} (years of education), a proxy for cognitive reserve, later confirmed by SHAP analysis (Section 5.1.9) as the strongest predictor for the CN class; \textbf{MMSE} (Mini-Mental State Examination, 0-30), a direct cognitive assessment score; and \textbf{APOE4} (allele count, 0/1/2), the primary known genetic risk factor for late-onset Alzheimer's Disease.
 
 Data cleaning addressed several dataset-specific issues. Rows missing any tabular feature or a diagnosis label were dropped. ADNI's several phase-specific diagnosis codes were standardized into the three canonical classes (EMCI and LMCI mapped to MCI; SMC mapped to CN; AD mapped to Dementia). The APOE4 column's \texttt{-4} sentinel value (ADNI's missing-data code, not a real allele count) was treated as missing, removing approximately 18 scans. For subjects with multiple longitudinal visits recorded under different diagnoses, the diagnosis was matched to the specific date of the imaging session rather than defaulting to the subject's most recent visit label, to avoid attaching a scan to a diagnosis from a different point in time. The final cleaned dataset comprises the 1,549 scans described above.
@@ -586,6 +642,22 @@ The BDT (Section 3) was trained and evaluated across two sequential experimental
 \subsubsection{Infrastructure}\label{sec5_1_1}
 
 Training infrastructure was provisioned on Microsoft Azure Machine Learning. An interactive compute instance (``DevBox'') and a separate compute cluster (``Workhorse''), which scaled to zero nodes when idle, were provisioned, both of specification \texttt{Standard\_E4ds\_v4} (4 cores, 32 GB RAM, 150 GB disk). The compute instance was used for interactive development and dashboard testing, while the compute cluster executed all data-ingestion and training jobs.
+
+Figures~\ref{fig:azure_devbox_instance} and~\ref{fig:azure_devbox_cluster} show the provisioned specifications for both.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_azure_devbox_instance.png}
+\caption{Azure Machine Learning DevBox compute instance specification.}
+\label{fig:azure_devbox_instance}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_azure_devbox_cluster.png}
+\caption{Azure Machine Learning Workhorse compute cluster specification.}
+\label{fig:azure_devbox_cluster}
+\end{figure}
+
 
 \subsubsection{Environment}\label{sec5_1_2}
 
@@ -644,7 +716,17 @@ Training used 5-fold stratified cross-validation, AdamW optimization (learning r
 
 \subsubsection{Results}\label{sec5_1_7}
 
-Training completed for only one of five folds. The remaining four folds triggered early stopping within a few epochs of their best result, caused by a sharp validation-loss spike in early training, attributed to the learning-rate schedule beginning at full magnitude with no warmup period, combined with the high per-step gradient noise inherent to a batch size of 4 on high-dimensional 3D volumetric input. Fold 4 was the only fold to train to completion (15 epochs) and was adopted as the primary model for this phase. The full training job (all five fold attempts, run as a single Azure ML Command Job, \texttt{BDT-Hybrid-Model-Training-CleanData}) ran for \textbf{1 day, 10 hours} of compute time, the great majority of which was consumed by Fold 4's complete 15-epoch run; the four early-stopped folds each contributed comparatively little wall-clock time by comparison.
+Training completed for only one of five folds. The remaining four folds triggered early stopping within a few epochs of their best result, caused by a sharp validation-loss spike in early training, attributed to the learning-rate schedule beginning at full magnitude with no warmup period, combined with the high per-step gradient noise inherent to a batch size of 4 on high-dimensional 3D volumetric input. Fold 4 was the only fold to train to completion (15 epochs) and was adopted as the primary model for this phase.
+
+Figure~\ref{fig:cpu_fold_recovery_log} shows the checkpoint log across all five fold attempts, confirming Fold 4 as the only one to complete.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_cpu_fold_recovery_log.png}
+\caption{Fold checkpoint log showing only Fold 4 completing all 15 epochs while the remaining folds triggered early stopping.}
+\label{fig:cpu_fold_recovery_log}
+\end{figure}
+ The full training job (all five fold attempts, run as a single Azure ML Command Job, \texttt{BDT-Hybrid-Model-Training-CleanData}) ran for \textbf{1 day, 10 hours} of compute time, the great majority of which was consumed by Fold 4's complete 15-epoch run; the four early-stopped folds each contributed comparatively little wall-clock time by comparison.
 
 \begin{table}[h]
 \caption{Fold 4 classification performance (validation set, $n=310$)}\label{tab4}
@@ -660,9 +742,15 @@ MCI & 0.74 & 0.71 & 0.72 & 0.844 \\
 \end{tabular}
 \end{table}
 
-The model produced zero misclassifications between the CN and Dementia classes, the two diagnostically furthest-apart categories, across the entire validation set (Figure 1).
+The model produced zero misclassifications between the CN and Dementia classes, the two diagnostically furthest-apart categories, across the entire validation set (Figure~\ref{fig:cpu_confusion_matrix}).
 
-\textit{Figure 1. Fold 4 confusion matrix (CPU-trained model).}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_cpu_confusion_matrix.png}
+\caption{Fold 4 confusion matrix (CPU-trained model).}
+\label{fig:cpu_confusion_matrix}
+\end{figure}
+
 
 \subsubsection{Ablation Study: CPU-Feasible Variants}\label{sec5_1_8}
 
@@ -686,20 +774,81 @@ B4, Gradient Boosting (tabular) & 0.941 & 0.825 \\
 
 This comparison revealed that Random Forest and Gradient Boosting classifiers, trained on the four tabular features alone with no imaging input whatsoever, achieved higher raw AUC than the full multimodal model. Investigation attributed this to the MMSE label-leakage effect noted in Section 4.2: because ADNI's diagnostic labels are themselves partly derived from MMSE threshold criteria, a classifier with direct access to MMSE can reconstruct much of the label without reference to any imaging data. This is treated as a limitation of AUC as a sole comparison metric here, not as evidence that the multimodal model underperforms. Section 5.1.9 and the full model's zero-CN-Dementia-confusion result above are the more clinically meaningful comparison points. The model's contribution from imaging alone can be measured directly against the tabular-only floor: full multimodal AUC (0.912) minus tabular-only MLP AUC (0.879) gives \textbf{+0.033 AUC points} attributable to the 3D MRI pathway.
 
+Figures~\ref{fig:cpu_ablation_horizontal_chart}-\ref{fig:cpu_ablation_training_logs} show this comparison from the CPU-feasible ablation run in full, including the per-class breakdown and the underlying training logs for the A0/A1 variants.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_cpu_ablation_horizontal_chart.png}
+\caption{CPU-feasible ablation results, horizontal comparison chart.}
+\label{fig:cpu_ablation_horizontal_chart}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_cpu_ablation_perclass.png}
+\caption{CPU-feasible ablation results, per-class AUC.}
+\label{fig:cpu_ablation_perclass}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_cpu_ablation_training_logs.png}
+\caption{Training curves and classification reports for the A0 and A1 CPU-feasible variants.}
+\label{fig:cpu_ablation_training_logs}
+\end{figure}
+
+
 The remaining five deep-learning variants (a CNN-only classifier, A2; two alternative CNN-tabular fusion designs, A3 and A4; a single-layer Transformer variant, A5; and a variant trained without class-weighted loss, A6) each require training a full 3D-CNN-based model from scratch on imaging data, at the same per-fold training cost that limited Section 5.1.7 to one completed fold. A single continuous run covering these variants was attempted on CPU-only compute. It ran for approximately \textbf{12 hours} before failing with an out-of-memory error on the 32 GB compute instance, without completing. These variants were therefore deferred to Experiment 2 (Section 5.2), where they were executed as part of a complete, independently re-run eleven-variant ablation study on GPU hardware with substantially more available memory.
 
-\textit{Figure 2. CPU-feasible ablation results, bar chart.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_cpu_ablation_results.png}
+\caption{CPU-feasible ablation results, bar chart.}
+\label{fig:cpu_ablation_results}
+\end{figure}
+
 
 \subsubsection{Explainability}\label{sec5_1_9}
 
 SHAP analysis (applied to the tabular branch with the imaging embedding held frozen) identified PTEDUCAT as the strongest predictor for the CN class and AGE as the strongest predictor for the Dementia class. Gradient-based explainability (Grad-CAM, hooked on the final dense block of the CNN backbone, Section 3.6) required the input tensor's gradient tracking to be explicitly enabled before the backward pass, which was not the default behavior when running inference on an already-evaluated model. For validation patient 057\_S\_1373 (true diagnosis Dementia, correctly predicted Dementia), Grad-CAM peak activation was located at axial slice $z=86$, sagittal slice $y=43$, and coronal slice $x=87$. As shown in the corresponding figure, activation spans a broad region of the affected hemisphere rather than sharply localizing to the hippocampus. The actual localization should be read directly from the figure rather than assumed; this diffuse pattern is returned to in Section 5.2.9.
 
-\textit{Figure 3. SHAP tabular feature attribution (CPU-trained model).}
-\textit{Figure 4. Grad-CAM activation overlay, Patient 057\_S\_1373 (Dementia), CPU-trained model.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_cpu_shap.png}
+\caption{SHAP tabular feature attribution (CPU-trained model).}
+\label{fig:cpu_shap}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_cpu_gradcam_057_1373.png}
+\caption{Grad-CAM activation overlay, Patient 057\_S\_1373 (Dementia), CPU-trained model.}
+\label{fig:cpu_gradcam}
+\end{figure}
+
 
 \subsubsection{Markov Chain and Digital Twin}\label{sec5_1_10}
 
 An earlier run of the Markov Chain estimation procedure (Section 3.7) surfaced a manifest-level defect: the \texttt{visit\_date} field, extracted from each scan's file path, failed to parse for every row (0/1,549 rows extracted), because the extraction function required an exact 10-character path segment while real segments concatenate date, time, and image identifier into a longer string. Since the chronological visit-ordering the transition-matrix computation depends on was therefore effectively arbitrary rather than time-ordered, a symptom surfaced directly: the resulting matrix showed APOE4-positive patients with a lower MCI-to-Dementia transition probability than APOE4-negative patients, backwards from APOE4's known role as a progression risk factor. The date-extraction function was corrected (matching on the leading 10 characters of a sufficiently long path segment rather than requiring an exact-length match) during the GPU migration (Section 5.2.2), and the fix was subsequently ported back into the CPU pipeline. The Markov Chain and Digital Twin results reported in this work (Section 5.2.10) reflect the corrected pipeline in both experimental phases.
+
+Figure~\ref{fig:cpu_markov_heatmap} shows the corrected CPU-side transition-matrix heatmap, and Figures~\ref{fig:cpu_whatif_016_1149}-\ref{fig:cpu_whatif_numbers_016_1149} show the CPU-trained model's what-if trajectories and summary numbers for Patient 016\_S\_1149, the same patient re-examined under the GPU-trained model in Section 5.2.11.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_cpu_markov_heatmap.png}
+\caption{Markov transition matrix heatmap, full cohort, CPU run.}
+\label{fig:cpu_markov_heatmap}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_cpu_whatif_016_1149.png}
+\caption{What-if simulation trajectories for Patient 016\_S\_1149 under the CPU-trained model.}
+\label{fig:cpu_whatif_016_1149}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_cpu_whatif_numbers_016_1149.png}
+\caption{What-if simulation summary numbers for Patient 016\_S\_1149 under the CPU-trained model.}
+\label{fig:cpu_whatif_numbers_016_1149}
+\end{figure}
+
 
 This phase's results are limited in several respects (a single completed fold, a compute-infeasible portion of the ablation study, and a manifest-level defect that blocked Markov Chain validation), discussed together with the GPU phase's own limitations in Section 6.3.
 
@@ -709,7 +858,13 @@ This phase's results are limited in several respects (a single completed fold, a
 
 To obtain a statistically valid cross-validated result and complete the planned ablation and prognostic-modeling work left incomplete by Experiment 1's CPU-only compute constraints (Section 5.1), the identical codebase (same architecture, same data splits, same preprocessing pipeline) was migrated to a university GPU lab workstation (NVIDIA GeForce RTX 5070 Ti, 17.1 GB VRAM), running locally rather than on Azure ML Compute. This experiment isolates the effect of the compute platform: nothing about the model, the data, or the task changes between Experiments 1 and 2, so any difference in outcome is attributable to the compute environment and the training-configuration adjustments it enabled, not to a different problem being solved.
 
-\textit{Figure 5. GPU detection / specification confirmation.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_gpu_detection.png}
+\caption{GPU detection and specification confirmation at the start of Experiment 2.}
+\label{fig:gpu_detection}
+\end{figure}
+
 
 \subsubsection{Migration: Environment and Data Transfer}\label{sec5_2_2}
 
@@ -764,7 +919,13 @@ On this shared fold, the GPU-trained model outperforms the CPU-trained model by 
 
 The full 5-fold training run completed in approximately \textbf{1 hour}, a dramatic reduction from the CPU run's 1 day 10 hours (Section 5.1.7), despite the GPU run completing all five folds to their full epoch budget versus the CPU run completing only one. This reflects the combined effect of GPU-accelerated 3D convolution, the larger batch size (16 vs. 4), and mixed-precision training, rather than any change to the amount of data or number of epochs per fold.
 
-\textit{Figure 6. 5-fold training log, all folds completing.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.45\textwidth]{fig_gpu_5fold_training_log.png}
+\caption{5-fold training log showing all folds completing under the revised GPU training configuration.}
+\label{fig:gpu_5fold_training_log}
+\end{figure}
+
 
 \subsubsection{Checkpoint Selection Methodology Experiment}\label{sec5_2_6}
 
@@ -819,8 +980,35 @@ As these results are single-fold (n=310) rather than cross-validated, the close 
 
 Two results stand out here: the near-identical scores of the CNN-only variant (0.9474) and the full multimodal model (0.9486), and the continued outperformance of classical tree-ensemble methods over the deep tabular-only branch ($\sim$0.94 vs. 0.87 AUC) on identical input features. Both are examined in Section 6.1.
 
-\textit{Figure 7. Ablation study, AUC comparison across all 11 variants.}
-\textit{Figure 8. Ablation study, per-class AUC grouped chart.}
+Figure~\ref{fig:gpu_baseline_training_logs} shows the per-variant training logs for the classical baselines (B1-B4) from this run, and Figure~\ref{fig:gpu_ablation_perclass_delta} shows each variant's per-class AUC change relative to the full multimodal model.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.38\textwidth]{fig_gpu_baseline_training_logs.png}
+\caption{Per-variant classical-baseline (B1-B4) training logs from the full GPU ablation study.}
+\label{fig:gpu_baseline_training_logs}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_gpu_ablation_perclass_delta.png}
+\caption{Per-class AUC change relative to the full multimodal model for each ablation variant.}
+\label{fig:gpu_ablation_perclass_delta}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_gpu_ablation_11variant.png}
+\caption{Ablation study, AUC comparison across all 11 variants.}
+\label{fig:gpu_ablation_11variant}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_gpu_ablation_perclass.png}
+\caption{Ablation study, per-class AUC grouped chart.}
+\label{fig:gpu_ablation_perclass}
+\end{figure}
+
 
 \subsubsection{Post-Training Evaluation}\label{sec5_2_8}
 
@@ -840,17 +1028,35 @@ MCI & 0.82 & 0.78 & 0.80 & 0.913 \\
 
 Every class improved over the CPU-trained model's Fold 4 result (Table~\ref{tab4}): CN AUC rose from 0.957 to 0.982, Dementia from 0.936 to 0.958, and MCI, the hardest class throughout this thesis, from 0.844 to 0.913.
 
-\textit{Figure 9. Fold 4 confusion matrix, GPU-trained model.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_gpu_confusion_matrix.png}
+\caption{Fold 4 confusion matrix, GPU-trained model.}
+\label{fig:gpu_confusion_matrix}
+\end{figure}
+
 
 \subsubsection{Explainability}\label{sec5_2_9}
 
 SHAP analysis (tabular branch, frozen image embedding, same method as Section 5.1.9) was re-run against the GPU-trained checkpoint.
 
-\textit{Figure 10. SHAP tabular feature attribution, GPU-trained model.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_gpu_shap.png}
+\caption{SHAP tabular feature attribution, GPU-trained model.}
+\label{fig:gpu_shap}
+\end{figure}
+
 
 Grad-CAM was run on the same validation patient used in the CPU section, 057\_S\_1373 (true diagnosis Dementia, correctly predicted Dementia), for direct before/after comparison of the same patient under the CPU- and GPU-trained models. Peak activation moved from (axial z=86, sagittal y=43, coronal x=87) under the CPU model to (axial z=94, sagittal y=75, coronal x=108) under the GPU model, a visibly different activation region between the two model generations for the identical patient. Grad-CAM output should not be treated as a fixed property of the patient. As with the CPU section, the actual localization (focal vs. diffuse) should be read directly off the figure before making any claim about anatomical correspondence.
 
-\textit{Figure 11. Grad-CAM activation overlay, Patient 057\_S\_1373 (Dementia), GPU-trained model.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_gpu_gradcam_057_1373.png}
+\caption{Grad-CAM activation overlay, Patient 057\_S\_1373 (Dementia), GPU-trained model.}
+\label{fig:gpu_gradcam}
+\end{figure}
+
 
 \subsubsection{Markov Chain and Digital Twin}\label{sec5_2_10}
 
@@ -897,7 +1103,13 @@ MCI & 0.000 & 0.133 & 0.867 \\
 
 Dementia behaves as an effectively absorbing state (self-transition probability 0.995-1.00 across all three strata), and APOE4-positive patients show a higher MCI-to-Dementia transition probability (0.184) than APOE4-negative patients (0.133), the clinically expected direction. These figures match the CPU section's corrected transition matrices (Section 5.1.10) exactly, which is itself a useful internal consistency check: two independent runs of the same fixed pipeline, on two different machines, produced identical transition matrices.
 
-\textit{Figure 12. Markov transition matrix heatmap, full cohort, GPU run.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_gpu_markov_heatmap.png}
+\caption{Markov transition matrix heatmap, full cohort, GPU run.}
+\label{fig:gpu_markov_heatmap}
+\end{figure}
+
 
 \subsubsection{What-If Simulation}\label{sec5_2_11}
 
@@ -919,7 +1131,13 @@ APOE4-positive + Donanemab (35\%) & 11.9\% \\
 
 Every simulated effect remains in the clinically expected direction (APOE4 increases risk, both treatments decrease it), matching the CPU result's pattern. The absolute risk estimates differ substantially between the two model generations, however: the CPU-trained model estimated this same patient's baseline 5-year Dementia risk at 54.9\% (Section 5.1.10), while the GPU-trained model estimates 14.5\%. This divergence is examined in Section 6.1.
 
-\textit{Figure 13. What-if simulation for Patient 016\_S\_1149: baseline, APOE4, Lecanemab, and Donanemab trajectories under the GPU-trained model.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_gpu_whatif_016_1149.png}
+\caption{What-if simulation for Patient 016\_S\_1149: baseline, APOE4, Lecanemab, and Donanemab trajectories under the GPU-trained model.}
+\label{fig:gpu_whatif}
+\end{figure}
+
 
 \subsubsection{Additional Digital Twin Validation}\label{sec5_2_12}
 
@@ -944,7 +1162,13 @@ Patient & 65 & 70 & 75 & 80 & 85 & Direction \\
 
 Two of five patients showed the clinically expected increasing-risk direction. This is consistent with the AGE tabular feature carrying a comparatively weak and noisy signal relative to the dominant imaging pathway, directly supported by Section 5.2.7's finding that removing the tabular branch entirely (CNN-only, 0.9474) barely changes performance versus the full model (0.9486), rather than indicating a systematic error in the simulation methodology. The direction varying by patient, rather than being uniformly wrong, is what distinguishes a noisy weak feature from a code defect.
 
-\textit{Figure 14. Age-sensitivity analysis, Patient 016\_S\_1149.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_age_sensitivity_016_1149.png}
+\caption{Age-sensitivity analysis, Patient 016\_S\_1149.}
+\label{fig:age_sensitivity}
+\end{figure}
+
 
 \textbf{Population subgroup comparison.} The Digital Twin was run on 10 representative patients from each diagnostic class to validate population-level behavior:
 
@@ -963,7 +1187,13 @@ Dementia & 95.1\% $\pm$ 5.0\% \\
 
 The monotonic ordering (CN < MCI < Dementia) is the expected population-level pattern and was not explicitly enforced by the model or the simulation. It emerges from the combination of the classifier's diagnosis probabilities and the Markov transition matrix.
 
-\textit{Figure 15. Population subgroup trajectory comparison across CN, MCI, and Dementia.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_population_subgroup.png}
+\caption{Population subgroup trajectory comparison across CN, MCI, and Dementia.}
+\label{fig:population_subgroup}
+\end{figure}
+
 
 \textbf{Early vs. late intervention timing.} Using time-varying transition matrices (Algorithm~\ref{algo2}, Section~\ref{sec3_8}), the same APOE4-positive MCI patient (128\_S\_0167) was simulated receiving Lecanemab starting at Year 0 versus Year 2:
 
@@ -982,7 +1212,13 @@ Lecanemab starting Year 0 & 95.7\% \\
 
 Earlier intervention produces a lower simulated risk, the clinically expected direction, though the absolute effect is modest for this particular patient because their baseline risk was already very high (97.3\%) by the time of assessment. This ceiling effect should be kept in mind rather than presenting the 1.6-percentage-point gap as a strong treatment-timing effect. This simulation is the most novel capability demonstrated in this thesis: no published static ADNI classifier can produce a time-varying intervention-timing projection, since that requires the combination of a trained classifier and a Markov progression model that neither component provides alone.
 
-\textit{Figure 16. Early vs. late intervention timing, Patient 128\_S\_0167.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{fig_early_late_intervention_128_0167.png}
+\caption{Early vs. late intervention timing, Patient 128\_S\_0167.}
+\label{fig:early_late_intervention}
+\end{figure}
+
 
 \subsubsection{Clinical Dashboard Deployment}\label{sec5_2_13}
 
@@ -995,8 +1231,47 @@ The GPU-trained model and associated Markov transition matrices were integrated 
 \end{enumerate}
 Following these fixes, the deployed model was validated against a genuine held-out ADNI patient record not used during any training or validation step in this thesis, correctly predicting the patient's true diagnosis with near-full confidence, with the reported risk-trajectory and genotype-effect figures matching hand-computed values derived independently from the underlying transition matrices.
 
-\textit{Figure 17. Deployed dashboard, prediction output for the held-out verification patient.}
-\textit{Figure 18. Deployed dashboard, ``About'' / model-info panel.}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_dashboard_prediction.png}
+\caption{Deployed dashboard, prediction output for the held-out verification patient.}
+\label{fig:dashboard_prediction}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_dashboard_about.png}
+\caption{Deployed dashboard, ``About'' / model-info panel.}
+\label{fig:dashboard_about}
+\end{figure}
+
+
+Beyond the prediction and model-info views already discussed, the dashboard exposes several further panels not separately narrated above: a 5-year state-trajectory view, a dementia risk-factor breakdown, a Grad-CAM demo on a different patient, and an AI-generated lifestyle-recommendation panel (Figures~\ref{fig:dashboard_trajectories_tab}-\ref{fig:dashboard_lifestyle}).
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_dashboard_trajectories_tab.png}
+\caption{Deployed dashboard, 5-year state-trajectories tab.}
+\label{fig:dashboard_trajectories_tab}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_dashboard_risk_factor.png}
+\caption{Deployed dashboard, 5-year dementia risk-factor chart.}
+\label{fig:dashboard_risk_factor}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.55\textwidth]{fig_dashboard_gradcam_demo.png}
+\caption{Deployed dashboard, Grad-CAM demonstration on Patient 023\_S\_0887.}
+\label{fig:dashboard_gradcam_demo}
+\end{figure}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.65\textwidth]{fig_dashboard_lifestyle.png}
+\caption{Deployed dashboard, AI-generated lifestyle-recommendation panel.}
+\label{fig:dashboard_lifestyle}
+\end{figure}
+
 
 This phase's results also carry limitations (single-fold ablation, a weak age signal, and a large single-patient divergence from the CPU phase), discussed together with the CPU phase's own limitations in Section 6.3.
 
