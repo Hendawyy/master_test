@@ -17,6 +17,8 @@
 \usepackage{rotating}%% required for \begin{sidewaystable} -- NOT in the original template preamble;
                         %% this omission is the most likely reason your tables were not compiling/appearing
 \usepackage{caption}%% needed for \caption* (unnumbered captions on the literature-review tables)
+\usepackage{placeins}%% provides \FloatBarrier, used before each \section to stop that
+                       %% section's tables/figures from drifting into the next section
 
 \providecommand{\tightlist}{%% pandoc-generated macro used by the itemize/enumerate lists below;
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}%% also missing from the original template preamble
@@ -232,6 +234,7 @@ CPU and GPU experimental phases in full), Section~\ref{sec6} covers Discussion
 prior work, and consolidating limitations), and Section~\ref{sec7} covers
 Conclusion and Future Work.
 
+\FloatBarrier
 \section{Related Work}\label{sec2}
 
 This section reviews the literature forming the foundation for the proposed Brain Digital Twin. Following the format used in the original project proposal, each study is summarized in a structured table listing its objectives, methodology and findings, and its specific contribution to this thesis. The review follows the research trajectory that motivated this work: starting with broader applications of predictive AI in medicine, narrowing to the Digital Twin paradigm, and finally focusing on state-of-the-art deep learning and explainability techniques in Alzheimer's Disease research specifically.
@@ -349,6 +352,7 @@ The reviewed literature demonstrates a clear progression: (1) interpretable ML p
 \textbf{Research gap.} Current AD Digital Twin implementations are fragmented and rely on comparatively simple progression models. Some, like Bertolini et al. \cite{bib10}, simulate clinical/cognitive scores but not imaging; others, like Ravi et al. \cite{bib29} (table above), simulate imaging but not clinical scores. State-of-the-art multimodal deep learning classification methods have not, in prior work, been embedded into a single dynamic, simulative Digital Twin capable of personalized ``what-if'' intervention analysis across both modalities at once. This work addresses that gap by integrating a state-of-the-art hybrid CNN-Transformer diagnostic engine, trained jointly on imaging and clinical/genetic tabular data, with a robust, data-driven Markov simulation model for prognostic and simulative capabilities. Together these components form the Brain Digital Twin: an end-to-end, multimodal system intended to be more clinically useful than a diagnostic classifier alone.
 
 
+\FloatBarrier
 \section{Methodology}\label{sec3}
 
 This section presents the unified, end-to-end framework for the Brain Digital Twin. It first establishes the theoretical foundations for each component (Sections 3.1-3.3), then describes the as-built architecture, training procedure, and explainability pipeline exactly as implemented (Sections 3.4-3.7), and finally formalizes the framework as two algorithms with a complexity analysis (Section 3.8). The BDT was implemented once, as a single codebase, and executed identically (Section 5) on two compute platforms. The only differences between the two experimental runs are in compute hardware and, where explicitly noted, training hyperparameters changed in direct response to instability observed in the first run.
@@ -544,6 +548,7 @@ with $Q_\alpha$ denoting the empirical $\alpha$-quantile. As $N_{\mathrm{sims}} 
 \textbf{Complexity.} Let $B$ denote batch size, $d=1024$ the image embedding dimension, and $p$ the projected fusion dimension. Per training batch, the DenseNet-121 forward/backward pass dominates cost at $O(B \cdot D \cdot H \cdot W \cdot d)$ for a volume of size $D \times H \times W = 128^3$, several orders of magnitude larger than the Transformer encoder's cost of $O(B \cdot p^2)$ over its single-token sequence. The imaging branch, not the fusion mechanism, is the computational bottleneck, consistent with the empirical training-time results reported in Section 5. For Algorithm~\ref{algo2}, each Monte Carlo simulation is $O(n_{\mathrm{years}} \cdot v)$ (a fixed number of categorical draws over a $3\times3$ matrix), so total simulation cost is $O(n_{\mathrm{sims}} \cdot n_{\mathrm{years}} \cdot v)$, independent of the classifier's cost since $p_0$ is computed once per patient rather than once per simulation. With $n_{\mathrm{sims}}=1{,}000$ and a 5-year, semi-annual-visit horizon ($n_{\mathrm{years}} \cdot v = 10$ steps), this cost is negligible next to the single forward pass through $f_\theta$ that dominates per-patient latency in practice.
 
 
+\FloatBarrier
 \section{Dataset and Description}\label{sec4}
 
 \subsection{The Alzheimer's Disease Neuroimaging Initiative (ADNI)}\label{sec4_1}
@@ -571,6 +576,7 @@ One feature-selection caveat, returned to in Section 5.1.10, is that MMSE functi
 Each validated DICOM scan was processed through a standard neuroimaging pipeline: loading, reorientation to RAS anatomical space, resampling to 1.5 mm isotropic spacing, resizing/padding to a fixed $128 \times 128 \times 128$ voxel volume, and intensity normalization to $[0,1]$ (clipped at $[0, 1500]$ Hounsfield units), with random affine augmentation applied at training time only. All 1,549 preprocessed volumes were cached to disk as PyTorch tensors (approximately 13 GB total) prior to training, avoiding repetition of this pipeline on every epoch. This preprocessing stage is purely deterministic, classical image processing; it involves no learned components. The CNN and Transformer are applied only afterward, at the modeling stage (Section 3.4), operating on the resulting normalized tensor rather than on raw DICOM data.
 
 
+\FloatBarrier
 \section{Experiments and Result Analysis}\label{sec5}
 
 The BDT (Section 3) was trained and evaluated across two sequential experimental phases sharing an identical codebase, architecture, dataset, and cross-validation splits (Section 3.5). The only differences between them are compute hardware and, where explicitly noted, training hyperparameters changed in direct response to instability observed in the first phase. Experiment 1 (Section 5.1) was conducted on CPU-based Azure Machine Learning compute and established the full data pipeline, the model architecture, one validated fold, and a partial ablation study. Experiment 2 (Section 5.2) was conducted on a GPU workstation and obtained a fully cross-validated result, the complete ablation study, and end-to-end validation of the Digital Twin pipeline, culminating in deployment to a production clinical dashboard.
@@ -995,6 +1001,7 @@ Following these fixes, the deployed model was validated against a genuine held-o
 This phase's results also carry limitations (single-fold ablation, a weak age signal, and a large single-patient divergence from the CPU phase), discussed together with the CPU phase's own limitations in Section 6.3.
 
 
+\FloatBarrier
 \section{Discussion}\label{sec6}
 
 \subsection{Synthesis of Findings Across Experiments}\label{sec6_1}
@@ -1030,6 +1037,7 @@ Several limitations qualify the results in this thesis, spanning both experiment
 \textbf{Deviations from the proposed framework.} Table~\ref{tab1} documents five specific deviations between the originally proposed framework and the as-built system. Most significantly, a fully-observed empirical Markov Chain was substituted for the originally proposed Hidden Markov Model, justified by the fact that diagnostic state is directly observed at each ADNI visit rather than hidden, and Transformer attention-map visualization was omitted, since it would be architecturally degenerate given the single-token fusion design (Section 3.4).
 
 
+\FloatBarrier
 \section{Conclusion and Future Work}\label{sec7}
 
 \subsection{Summary of Contributions}\label{sec7_1}
