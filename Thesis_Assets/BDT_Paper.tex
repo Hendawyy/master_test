@@ -25,6 +25,20 @@
 \providecommand{\tightlist}{%% pandoc-generated macro used by the itemize/enumerate lists below;
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}%% also missing from the original template preamble
 
+%% LaTeX's default float-placement limits (max 2 floats at the top of a page, 1 at
+%% the bottom, 3 total, and floats give up if less than 20% of a page is left for
+%% text) are too conservative for a paper with 41 figures, several stacked back to
+%% back -- with the defaults, floats queue up faster than they can be placed,
+%% leaving pages mostly blank while a figure strands itself near the bottom of a
+%% later page. Relaxing these lets LaTeX pack floats far more tightly instead.
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.7}
+\setcounter{topnumber}{9}
+\setcounter{bottomnumber}{9}
+\setcounter{totalnumber}{20}
+
 \theoremstyle{thmstyleone}%
 \newtheorem{theorem}{Theorem}%
 \newtheorem{proposition}[theorem]{Proposition}%
