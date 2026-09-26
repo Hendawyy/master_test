@@ -238,7 +238,7 @@ Figure~\ref{fig:framework_proposed} shows the Digital Twin framework as original
 \end{figure}
 
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Implementation deviations from the proposed framework}\label{tab1}
 \begin{tabular}{@{}p{0.24\textwidth}p{0.24\textwidth}p{0.42\textwidth}@{}}
 \toprule
@@ -698,7 +698,7 @@ An early iteration of this preliminary run, trained on an unfiltered version of 
 
 With the cleaned data and script-based execution, the FAST\_PROTO run achieved a macro one-vs-rest validation AUC of 0.862 and 63\% overall accuracy on the three-class problem (chance level 33\%) using only 40\% of the dataset and 10 epochs (Table~\ref{tab2}). The comparatively lower MCI AUC reflects a well-documented property of the ADNI cohort rather than a defect in the pipeline: of the misclassified MCI patients, a similar number were predicted CN as were predicted Dementia, consistent with MCI's clinical role as a transitional, diagnostically ambiguous state. Benchmarked against published 3-class ADNI results, this preliminary figure was already competitive using a fraction of the available data and training budget (Table~\ref{tab3}).
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Preliminary (FAST\_PROTO) per-class results}\label{tab2}
 \begin{tabular}{@{}ll@{}}
 \toprule
@@ -712,7 +712,7 @@ MCI & 0.698 \\
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Preliminary result vs. published ADNI benchmarks}\label{tab3}
 \begin{tabular}{@{}ll@{}}
 \toprule
@@ -747,7 +747,7 @@ Figure~\ref{fig:cpu_fold_recovery_log} shows the checkpoint log across all five 
 \end{figure}
  The full training job (all five fold attempts, run as a single Azure ML Command Job, \texttt{BDT-Hybrid-Model-Training-CleanData}) ran for \textbf{1 day, 10 hours} of compute time, the great majority of which was consumed by Fold 4's complete 15-epoch run; the four early-stopped folds each contributed comparatively little wall-clock time by comparison.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Fold 4 classification performance (validation set, $n=310$)}\label{tab4}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -775,7 +775,7 @@ The model produced zero misclassifications between the CN and Dementia classes, 
 
 Five of the eleven ablation variants planned for this work were successfully trained and evaluated on CPU compute, a genuine result of this phase rather than just a limitation: the full multimodal model (A0, reusing the existing Fold 4 checkpoint with no retraining required) and a tabular-only multilayer perceptron (A1) were evaluated alongside four classical machine-learning baselines trained directly on the four tabular features (B1 Logistic Regression, B2 SVM with an RBF kernel, B3 Random Forest, B4 Gradient Boosting).
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{CPU-feasible ablation results}\label{tab5}
 \begin{tabular}{@{}lcc@{}}
 \toprule
@@ -903,7 +903,7 @@ Because lab PC access was not continuous, the training loop was designed to tole
 
 With the revised schedule, all five folds completed training successfully, a first for this thesis, since only one of five folds completed on CPU (Section 5.1.7).
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{5-fold cross-validated results (GPU-trained model, loss-selected checkpoints)}\label{tab6}
 \begin{tabular}{@{}ll@{}}
 \toprule
@@ -921,7 +921,7 @@ Fold & Validation AUC \\
 
 This is the primary result of this thesis: a genuine 5-fold cross-validated estimate, in contrast to Experiment 1's single-fold result. A direct comparison is possible on Fold 4, since both experiments used an identical stratified split (same random seed, \texttt{random\_state=42}) and therefore evaluated on the same held-out 310 patients:
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Direct comparison on the shared Fold 4 split}\label{tab7}
 \begin{tabular}{@{}lll@{}}
 \toprule
@@ -950,7 +950,7 @@ The full 5-fold training run completed in approximately \textbf{1 hour}, a drama
 
 A secondary experiment tested whether checkpoint selection based on maximum validation AUC (rather than minimum validation loss) would yield a more favorable, or simply different, result. An identical training run was performed using AUC as both the selection and early-stopping criterion, writing to separate checkpoint files so the original loss-selected run remained untouched for comparison.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Loss-selected vs. AUC-selected checkpoint criteria}\label{tab8}
 \begin{tabular}{@{}lll@{}}
 \toprule
@@ -974,7 +974,7 @@ This second run completed in approximately \textbf{90 minutes}, slightly longer 
 
 The complete eleven-variant ablation study was executed on the GPU platform as a fresh, independent run, not a continuation of Experiment 1's partial results (Section 5.1.8). It re-trained all seven deep-learning variants (including the five that were CPU-infeasible: CNN-only, two fusion designs, the single-layer Transformer, and the no-class-weighting variant) and re-fit all four classical baselines, each evaluated on the same Fold 4 data split used throughout this thesis. The full study completed in \textbf{3 hours 58 minutes}, feasible on GPU within an afternoon. The same deep-learning variants had previously been attempted on CPU-only compute (Section 5.1.8), where the run failed with an out-of-memory error after approximately 12 hours without completing. The GPU platform's larger memory and faster per-batch throughput together turned a run that had failed outright into one that finished comfortably within a single working session.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Full ablation study results}\label{tab9}
 \begin{tabular}{@{}llcc@{}}
 \toprule
@@ -1031,7 +1031,7 @@ Figure~\ref{fig:gpu_baseline_training_logs} shows the per-variant training logs 
 
 \subsubsection{Post-Training Evaluation}\label{sec5_2_8}
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Fold 4 classification performance (validation set, n=310, GPU-trained model)}\label{tab10}
 \begin{tabular}{@{}lllll@{}}
 \toprule
@@ -1081,7 +1081,7 @@ Grad-CAM was run on the same validation patient used in the CPU section, 057\_S\
 
 The Markov Chain prognostic engine (Section 5.1.10's method) was re-run on this platform after the same \texttt{visit\_date} fix, against the identical 1,549-scan dataset. The resulting matrices are numerically consistent with the CPU section's corrected result, since the Markov chain is computed directly from ADNI visit history and does not depend on which model (CPU- or GPU-trained) is used for classification:
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Markov transition matrix, full cohort}\label{tab11}
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -1094,7 +1094,7 @@ MCI & 0.002 & 0.157 & 0.841 \\
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Markov transition matrix, APOE4-positive}\label{tab12}
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -1107,7 +1107,7 @@ MCI & 0.004 & 0.184 & 0.811 \\
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Markov transition matrix, APOE4-negative}\label{tab13}
 \begin{tabular}{@{}lccc@{}}
 \toprule
@@ -1134,7 +1134,7 @@ Dementia behaves as an effectively absorbing state (self-transition probability 
 
 The Digital Twin's what-if simulation (Section 3.7, Algorithm~\ref{algo2}) was run for validation patient 016\_S\_1149 (diagnosed MCI, APOE4-negative), the same patient examined in the CPU section's what-if result, enabling a direct before/after comparison under the two model generations.
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{What-if simulation, Patient 016\_S\_1149, 5-year Dementia probability, GPU-trained model}\label{tab14}
 \begin{tabular}{@{}lc@{}}
 \toprule
@@ -1164,7 +1164,7 @@ Three further checks were run to probe the Digital Twin's behavior beyond a sing
 
 \textbf{Age sensitivity.} An initial single-patient age sweep (65-85 years) produced a counter-intuitive result: predicted Dementia risk decreasing with increasing age. Rather than accept this at face value, the check was repeated across five independent MCI patients:
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Age-sensitivity check, 5-year Dementia probability by simulated age (65-85)}\label{tab15}
 \begin{tabular}{@{}lcccccl@{}}
 \toprule
@@ -1191,7 +1191,7 @@ Two of five patients showed the clinically expected increasing-risk direction. T
 
 \textbf{Population subgroup comparison.} The Digital Twin was run on 10 representative patients from each diagnostic class to validate population-level behavior:
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Mean 5-year Dementia probability by diagnostic subgroup (n=10 per group)}\label{tab16}
 \begin{tabular}{@{}ll@{}}
 \toprule
@@ -1216,7 +1216,7 @@ The monotonic ordering (CN < MCI < Dementia) is the expected population-level pa
 
 \textbf{Early vs. late intervention timing.} Using time-varying transition matrices (Algorithm~\ref{algo2}, Section~\ref{sec3_8}), the same APOE4-positive MCI patient (128\_S\_0167) was simulated receiving Lecanemab starting at Year 0 versus Year 2:
 
-\begin{table}[h]
+\begin{table}[htbp]
 \caption{Early vs. late intervention timing, Patient 128\_S\_0167, 5-year Dementia probability}\label{tab17}
 \begin{tabular}{@{}lc@{}}
 \toprule
