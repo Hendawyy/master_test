@@ -423,7 +423,7 @@ followed by a non-linear activation (this work uses the standard ReLU, $f(x) = \
 
 where $d_k$ is the dimension of the key vectors. Within the BDT, the Transformer encoder provides the mechanism for multimodal fusion between the imaging embedding and the tabular clinical features (Section 3.4).
 
-\textbf{3.3.3 Explainable AI (XAI).} To avoid a ``black-box'' system, two complementary explainability methods are used. SHAP (SHapley Additive exPlanations) is grounded in cooperative game theory: it explains a prediction by assigning each input feature a Shapley value representing its contribution to shifting the model's output from a baseline (average) prediction to the actual prediction, providing feature-level interpretability for the tabular branch. Grad-CAM (Gradient-weighted Class Activation Mapping) is designed for CNN-based models: for feature map $A^k$ of the target convolutional layer, the class-specific importance weight is
+\textbf{3.3.3 Explainable AI (XAI).} To avoid a ``black-box'' system, two complementary explainability methods are used. SHAP (SHapley Additive exPlanations) \cite{bib31} is grounded in cooperative game theory: it explains a prediction by assigning each input feature a Shapley value representing its contribution to shifting the model's output from a baseline (average) prediction to the actual prediction, providing feature-level interpretability for the tabular branch. Grad-CAM (Gradient-weighted Class Activation Mapping) is designed for CNN-based models: for feature map $A^k$ of the target convolutional layer, the class-specific importance weight is
 
 \begin{equation}
 \alpha_k^{c} = \frac{1}{Z} \sum_i \sum_j \frac{\partial y^{c}}{\partial A_{ij}^{k}}
@@ -1293,7 +1293,7 @@ Earlier intervention produces a lower simulated risk, the clinically expected di
 
 \subsubsection{Clinical Dashboard Deployment}\label{sec5_2_13}
 
-The GPU-trained model and associated Markov transition matrices were integrated into a Streamlit-based clinical dashboard, containerized and deployed to Azure App Service. During this integration, three functional defects were identified and resolved prior to production release: a checkpoint-loading incompatibility with current PyTorch versions, a label-mapping orientation mismatch between the two model generations' saved checkpoint metadata, and a silent-failure mode in which a patient with no available cached MRI scan could receive a full-confidence diagnostic prediction with no indication that the imaging pathway had not been used. Following these fixes, the deployed model was validated against a genuine held-out ADNI patient record not used during any training or validation step in this thesis, correctly predicting the patient's true diagnosis with near-full confidence, with the reported risk-trajectory and genotype-effect figures matching hand-computed values derived independently from the underlying transition matrices. The dashboard's architecture, full panel-by-panel functionality, and deployment details are described separately in a companion software publication~\cite{bib30}.
+The GPU-trained model and associated Markov transition matrices were integrated into a Streamlit-based clinical dashboard \cite{bib32}, containerized and deployed to Azure App Service. During this integration, three functional defects were identified and resolved prior to production release: a checkpoint-loading incompatibility with current PyTorch versions, a label-mapping orientation mismatch between the two model generations' saved checkpoint metadata, and a silent-failure mode in which a patient with no available cached MRI scan could receive a full-confidence diagnostic prediction with no indication that the imaging pathway had not been used. Following these fixes, the deployed model was validated against a genuine held-out ADNI patient record not used during any training or validation step in this thesis, correctly predicting the patient's true diagnosis with near-full confidence, with the reported risk-trajectory and genotype-effect figures matching hand-computed values derived independently from the underlying transition matrices. The dashboard's architecture, full panel-by-panel functionality, and deployment details are described separately in a companion software publication~\cite{bib30}.
 
 This phase's results also carry limitations (single-fold ablation, a weak age signal, and a large single-patient divergence from the CPU phase), discussed together with the CPU phase's own limitations in Section 6.3.
 
@@ -1449,6 +1449,10 @@ The author gratefully acknowledges the Arab Academy for Science, Technology and 
 \bibitem{bib29} D. Ravi, S. B. Blumberg, S. Ingala, F. Barkhof, D. C. Alexander, N. P. Oxtoby, and the Alzheimer's Disease Neuroimaging Initiative, ``Degenerative adversarial neuroimage nets for brain scan simulations: Application in ageing and dementia,'' \textit{Medical Image Analysis}, vol. 75, 102257, 2022. Available: \url{https://doi.org/10.1016/j.media.2021.102257}
 
 \bibitem{bib30} S. Hendwawy, F. Maghraby, A. Salem, ``Neuro-DT Dashboard: a Streamlit-based clinical interface for Brain Digital Twin Alzheimer's Disease risk prediction, explainability, and intervention simulation,'' \textit{manuscript in preparation}. %% UPDATE WITH FULL CITATION / DOI ONCE THE COMPANION SOFTWAREX PAPER IS SUBMITTED OR PUBLISHED
+
+\bibitem{bib31} S. M. Lundberg and S.-I. Lee, ``A unified approach to interpreting model predictions,'' in \textit{Advances in Neural Information Processing Systems}, vol. 30, 2017, pp. 4765-4774.
+
+\bibitem{bib32} Streamlit Inc., ``Streamlit: a faster way to build and share data apps,'' 2024. Available: \url{https://streamlit.io}
 
 \end{thebibliography}
 
