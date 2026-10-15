@@ -1293,62 +1293,7 @@ Earlier intervention produces a lower simulated risk, the clinically expected di
 
 \subsubsection{Clinical Dashboard Deployment}\label{sec5_2_13}
 
-The GPU-trained model and associated Markov transition matrices were integrated into a Streamlit-based clinical dashboard, containerized and deployed to Azure App Service. During this integration, three functional defects were identified and resolved prior to production release:
-
-\begin{enumerate}
-\item A checkpoint-loading incompatibility with current PyTorch versions (missing an explicit flag required because the checkpoint embeds a fitted scikit-learn scaler object, which newer PyTorch versions reject loading by default). This was the same class of defect independently re-discovered and fixed in the CPU notebook.
-\item A label-mapping orientation mismatch between the two model generations' saved checkpoint metadata, which caused inference to fail on every request against the newer checkpoint format.
-\item A silent-failure mode in which a patient with no available cached MRI scan received a full-confidence diagnostic prediction generated from a blank image tensor, with no indication to the clinician that the imaging pathway had not been used. This was resolved by explicitly tracking scan availability and surfacing an unmissable warning wherever such a prediction occurs.
-\end{enumerate}
-Following these fixes, the deployed model was validated against a genuine held-out ADNI patient record not used during any training or validation step in this thesis, correctly predicting the patient's true diagnosis with near-full confidence, with the reported risk-trajectory and genotype-effect figures matching hand-computed values derived independently from the underlying transition matrices.
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.65\textwidth]{fig_dashboard_prediction.png}
-\caption{Deployed dashboard, prediction output for the held-out verification patient.}
-\label{fig:dashboard_prediction}
-\end{figure}
-\FloatBarrier
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.55\textwidth]{fig_dashboard_about.png}
-\caption{Deployed dashboard, ``About'' / model-info panel.}
-\label{fig:dashboard_about}
-\end{figure}
-\FloatBarrier
-
-
-Beyond the prediction and model-info views already discussed, the dashboard exposes several further panels not separately narrated above: a 5-year state-trajectory view, a dementia risk-factor breakdown, a Grad-CAM demo on a different patient, and an AI-generated lifestyle-recommendation panel (Figures~\ref{fig:dashboard_trajectories_tab}-\ref{fig:dashboard_lifestyle}).
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.65\textwidth]{fig_dashboard_trajectories_tab.png}
-\caption{Deployed dashboard, 5-year state-trajectories tab.}
-\label{fig:dashboard_trajectories_tab}
-\end{figure}
-\FloatBarrier
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.65\textwidth]{fig_dashboard_risk_factor.png}
-\caption{Deployed dashboard, 5-year dementia risk-factor chart.}
-\label{fig:dashboard_risk_factor}
-\end{figure}
-\FloatBarrier
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.55\textwidth]{fig_dashboard_gradcam_demo.png}
-\caption{Deployed dashboard, Grad-CAM demonstration on Patient 023\_S\_0887.}
-\label{fig:dashboard_gradcam_demo}
-\end{figure}
-\FloatBarrier
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.65\textwidth]{fig_dashboard_lifestyle.png}
-\caption{Deployed dashboard, AI-generated lifestyle-recommendation panel.}
-\label{fig:dashboard_lifestyle}
-\end{figure}
-\FloatBarrier
-
+The GPU-trained model and associated Markov transition matrices were integrated into a Streamlit-based clinical dashboard, containerized and deployed to Azure App Service. During this integration, three functional defects were identified and resolved prior to production release: a checkpoint-loading incompatibility with current PyTorch versions, a label-mapping orientation mismatch between the two model generations' saved checkpoint metadata, and a silent-failure mode in which a patient with no available cached MRI scan could receive a full-confidence diagnostic prediction with no indication that the imaging pathway had not been used. Following these fixes, the deployed model was validated against a genuine held-out ADNI patient record not used during any training or validation step in this thesis, correctly predicting the patient's true diagnosis with near-full confidence, with the reported risk-trajectory and genotype-effect figures matching hand-computed values derived independently from the underlying transition matrices. The dashboard's architecture, full panel-by-panel functionality, and deployment details are described separately in a companion software publication~\cite{bib30}.
 
 This phase's results also carry limitations (single-fold ablation, a weak age signal, and a large single-patient divergence from the CPU phase), discussed together with the CPU phase's own limitations in Section 6.3.
 
@@ -1502,6 +1447,8 @@ The author gratefully acknowledges the Arab Academy for Science, Technology and 
 \bibitem{bib28} J. Zhou, Y. Wei, X. Li, et al., ``A deep learning model for early diagnosis of Alzheimer's disease combined with 3D CNN and video Swin transformer,'' \textit{Scientific Reports}, vol. 15, no. 23311, 2025. Available: \url{https://doi.org/10.1038/s41598-025-05568-y}
 
 \bibitem{bib29} D. Ravi, S. B. Blumberg, S. Ingala, F. Barkhof, D. C. Alexander, N. P. Oxtoby, and the Alzheimer's Disease Neuroimaging Initiative, ``Degenerative adversarial neuroimage nets for brain scan simulations: Application in ageing and dementia,'' \textit{Medical Image Analysis}, vol. 75, 102257, 2022. Available: \url{https://doi.org/10.1016/j.media.2021.102257}
+
+\bibitem{bib30} S. Hendwawy, F. Maghraby, A. Salem, ``Neuro-DT Dashboard: a Streamlit-based clinical interface for Brain Digital Twin Alzheimer's Disease risk prediction, explainability, and intervention simulation,'' \textit{manuscript in preparation}. %% UPDATE WITH FULL CITATION / DOI ONCE THE COMPANION SOFTWAREX PAPER IS SUBMITTED OR PUBLISHED
 
 \end{thebibliography}
 
